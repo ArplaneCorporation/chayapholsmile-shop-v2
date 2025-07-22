@@ -1,9 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
 import QRCode from "qrcode";
-import { generatePayload } from "promptpay-qr";
+import generatePayload from "promptpay-qr"; // ✅ ใช้ default import (เฉพาะ v1.0.6)
+
 import dbConnect from "../../../lib/db-connect";
 import PromptQR from "../../../models/promptqr";
-import Config from "../../../models/config"; // ← เก็บ promptpay id
+import Config from "../../../models/config"; // ← เก็บ promptpay_id
 
 export default async function handler(req, res) {
   await dbConnect();
@@ -19,14 +20,12 @@ export default async function handler(req, res) {
     }
 
     const config = await Config.findOne({});
-    if (!config || !config.payment.promptpay_id) {
+    if (!config || !config.payment || !config.payment.promptpay_id) {
       return res.status(500).json({ success: false, message: "PromptPay ID not configured" });
     }
 
     const ref = uuidv4().slice(0, 8);
-    const expiresAt = new Date(Date.now() + 10 * 60000);
-    const note = `Ref:${ref}|Exp:${expiresAt.toISOString()}`;
-
+    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 นาที
     const payload = generatePayload(config.payment.promptpay_id, {
       amount: parseFloat(amount),
     });
@@ -47,6 +46,7 @@ export default async function handler(req, res) {
       qr: qrDataUrl,
     });
   } catch (error) {
+    console.error("QR Create Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }
