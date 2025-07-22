@@ -1,192 +1,162 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useToast } from "../../contexts/toast/toast-context";
+import { HiOutlineCreditCard } from "react-icons/hi2";
+import { FaMobileAlt, FaQrcode } from "react-icons/fa";
+import { BsGift } from "react-icons/bs";
 
 const ConfigsPaymentTab = ({ configs, submit }) => {
-    const [isTmGift, setIsTmGift] = useState(configs?.payment?.truemoney_gift);
-    const [isTmQr, setIsTmQr] = useState(configs?.payment?.truemoney_qr);
-    const [isTrueMoney, setIsTrueMoney] = useState(configs?.payment?.truemoney);
-    const [isPpQr, setIsPpQr] = useState(configs?.payment?.promptpay_qr);
+  const toast = useToast();
+  const [formData, setFormData] = useState({
+    payment: {
+      truemoney_gift: configs?.payment?.truemoney_gift || false,
+      truemoney_qr: configs?.payment?.truemoney_qr || false,
+      promptpay: configs?.payment?.promptpay || false,
+      promptpay_id: configs?.payment?.promptpay_id || "",
+    },
+  });
 
-    const [twPhone, setTwPhone] = useState(configs?.payment?.truemoney_phone);
+  useEffect(() => {
+    if (configs?.payment) {
+      setFormData({
+        payment: {
+          truemoney_gift: configs.payment.truemoney_gift || false,
+          truemoney_qr: configs.payment.truemoney_qr || false,
+          promptpay: configs.payment.promptpay || false,
+          promptpay_id: configs.payment.promptpay_id || "",
+        },
+      });
+    }
+  }, [configs]);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      payment: {
+        ...formData.payment,
+        [name]: type === "checkbox" ? checked : value,
+      },
+    });
+  };
 
-        submit({
-            payment: {
-                truemoney_gift: isTmGift,
-                truemoney_qr: isTmQr,
-                truemoney: isTrueMoney,
-                promptpay_qr: isPpQr,
-                truemoney_phone: twPhone,
-            },
-        });
-    };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    try {
+      submit(formData);
+    } catch (error) {
+      toast.add({
+        title: "ผิดพลาด!",
+        text: error.message,
+        icon: "error",
+      });
+    }
+  };
 
-    return (
-        <div id="payment-config" className="grid grid-cols-2 gap-6 p-6">
-            <div className="col-span-2">
-                <h3 className="text-lg font-medium leading-6">
-                    ตั้งค่าระบบเติมเงิน
-                </h3>
-                <p className="mt-1 text-sm text-gray-600">
-                    แก้ไขรายละเอียดการเติมเงิน และเลือกใช้วิธีชำระเงินที่ต้องการ
-                </p>
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+        <HiOutlineCreditCard className="text-primary" />
+        ตั้งค่าระบบเติมเงิน
+      </h2>
+
+      <form onSubmit={handleSubmit}>
+        {/* TrueMoney Gift */}
+        <div className="mb-6 p-4 border rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <BsGift className="text-primary" />
+              <h3 className="font-semibold">TrueMoney Wallet Gift</h3>
             </div>
-
-            <hr className="col-span-2" />
-
-            <div className="col-span-2">
-                <h3 className="text-lg font-medium leading-6">
-                    TrueMoney Wallet Gift
-                </h3>
-                <p className="mt-1 text-sm text-gray-600">
-                    เติมเงินด้วยระบบ TrueMoney Wallet Gift
-                </p>
-            </div>
-            <div className="col-span-2 flex items-center justify-between gap-x-4">
-                <div className="col-span-2">
-                    <h2 className="text-base font-medium leading-6">สถานะ</h2>
-                    <p className="mt-1 text-sm text-gray-600">
-                        กำหนดสถานะของระบบ TrueMoney Wallet Gift
-                    </p>
-                </div>
-                <label className="inline-flex relative items-center">
-                    <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={isTmGift}
-                        readOnly
-                    />
-                    <div
-                        onClick={() => {
-                            setIsTmGift(!isTmGift);
-                        }}
-                        className="w-11 h-6 cursor-pointer bg-gray-300 rounded-full peer peer-focus:ring-green-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"
-                    />
-                </label>
-            </div>
-            <div className="col-span-2 md:col-span-1">
-                <label className="block text-sm font-medium tracking-wide">
-                    เบอร์โทรศัพท์
-                </label>
-                <input
-                    type="tel"
-                    name="twPhone"
-                    id="twPhone"
-                    value={twPhone}
-                    onChange={(e) => setTwPhone(e.target.value)}
-                    className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base"
-                />
-            </div>
-            <div className="col-span-2 md:col-span-1">
-                <label className="block text-sm font-medium tracking-wide">
-                    ค่าธรรมเนียม
-                </label>
-                <input
-                    type="tel"
-                    name="twPhone"
-                    id="twPhone"
-                    value={twPhone}
-                    onChange={(e) => setTwPhone(e.target.value)}
-                    className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base"
-                />
-            </div>
-
-            <hr className="col-span-2" />
-
-            <div className="col-span-2 flex items-center justify-end gap-x-4">
-                <button
-                    type="button"
-                    onClick={handleSubmit}
-                    className="inline-flex items-center bg-primary rounded-md transition-all overflow-hidden"
-                >
-                    <div className="w-full h-full inline-flex items-center justify-center font-medium text-white hover:backdrop-brightness-95 py-2 px-4">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={2.5}
-                            stroke="currentColor"
-                            className="w-5 h-5 mr-2"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                        </svg>
-                        <span className="block">บันทึก</span>
-                    </div>
-                </button>
-            </div>
-
-            {/* <hr className="col-span-2" />
-
-            <div className="col-span-2">
-                <h3 className="text-lg font-medium leading-6">
-                    TrueMoney Wallet QR
-                </h3>
-                <p className="mt-1 text-sm text-gray-600">
-                    เติมเงินด้วยระบบ TrueMoney Wallet QR
-                </p>
-            </div>
-            <div className="col-span-2 flex items-center justify-between gap-x-4">
-                <div className="col-span-2">
-                    <h2 className="text-base font-medium leading-6">สถานะ</h2>
-                    <p className="mt-1 text-sm text-gray-600">
-                        กำหนดสถานะของระบบ TrueMoney Wallet QR
-                    </p>
-                </div>
-                <label className="inline-flex relative items-center">
-                    <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={isTmQr}
-                        readOnly
-                    />
-                    <div
-                        onClick={() => {
-                            setIsTmQr(!isTmQr);
-                        }}
-                        className="w-11 h-6 cursor-pointer bg-gray-300 rounded-full peer peer-focus:ring-green-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"
-                    />
-                </label>
-            </div>
-
-            <hr className="col-span-2" />
-
-            <div className="col-span-2">
-                <h3 className="text-lg font-medium leading-6">
-                    TrueMoney Cash Card
-                </h3>
-                <p className="mt-1 text-sm text-gray-600">
-                    เติมเงินด้วยบัตรเงินสด TrueMoney Cash Card
-                </p>
-            </div>
-            <div className="col-span-2 flex items-center justify-between gap-x-4">
-                <div className="col-span-2">
-                    <h2 className="text-base font-medium leading-6">สถานะ</h2>
-                    <p className="mt-1 text-sm text-gray-600">
-                        กำหนดสถานะของระบบบัตรเงินสด TrueMoney Cash Card
-                    </p>
-                </div>
-                <label className="inline-flex relative items-center">
-                    <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={isTrueMoney}
-                        readOnly
-                    />
-                    <div
-                        onClick={() => {
-                            setIsTrueMoney(!isTrueMoney);
-                        }}
-                        className="w-11 h-6 cursor-pointer bg-gray-300 rounded-full peer peer-focus:ring-green-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"
-                    />
-                </label>
-            </div> */}
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                name="truemoney_gift"
+                checked={formData.payment.truemoney_gift}
+                onChange={handleChange}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+          <p className="text-sm text-gray-600">
+            เปิดใช้งานการเติมเงินด้วย TrueMoney Wallet Gift
+          </p>
         </div>
-    );
+
+        {/* TrueMoney QR */}
+        <div className="mb-6 p-4 border rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FaQrcode className="text-primary" />
+              <h3 className="font-semibold">TrueMoney Wallet QR</h3>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                name="truemoney_qr"
+                checked={formData.payment.truemoney_qr}
+                onChange={handleChange}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+          <p className="text-sm text-gray-600">
+            เปิดใช้งานการเติมเงินด้วย TrueMoney Wallet QR
+          </p>
+        </div>
+
+        {/* PromptPay Section */}
+        <div className="mb-6 p-4 border rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FaMobileAlt className="text-primary" />
+              <h3 className="font-semibold">PromptPay</h3>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                name="promptpay"
+                checked={formData.payment.promptpay}
+                onChange={handleChange}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+
+          {formData.payment.promptpay && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">
+                PromptPay E-Wallet ID
+              </label>
+              <input
+                type="text"
+                name="promptpay_id"
+                value={formData.payment.promptpay_id}
+                onChange={handleChange}
+                placeholder="เช่น 0812345678"
+                className="w-full p-2 border rounded-md"
+                maxLength="15"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                กรุณากรอกหมายเลขโทรศัพท์หรือเลขบัตรประชาชนที่ผูกกับ PromptPay
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <button
+            type="submit"
+            className="bg-primary text-white px-6 py-2 rounded-md hover:bg-primary-dark transition-colors"
+          >
+            บันทึกการตั้งค่า
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 };
 
 export default ConfigsPaymentTab;
