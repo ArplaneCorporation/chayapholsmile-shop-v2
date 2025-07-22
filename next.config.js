@@ -2,8 +2,6 @@
 const nextConfig = {
     reactStrictMode: true,
     images: {
-        "ibb.co",
-        "dummyimage.com"
     },
 };
 
