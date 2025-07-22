@@ -42,7 +42,7 @@ const Topup = ({ configs }) => {
                                     <div className="w-16 aspect-square relative flex items-center rounded-lg overflow-hidden transition-all group-hover:scale-105">
                                         <Image
                                             alt="topup_image"
-                                            src="https://cdn.discordapp.com/attachments/717327142978977834/1065807965073969222/ic-truemoneywallet-gift.png"
+                                            src="https://chayapholsmile-shop-v2.vercel.app/pictures/truemoney.png"
                                             draggable="false"
                                             fill
                                             className="select-none object-cover"
@@ -67,7 +67,7 @@ const Topup = ({ configs }) => {
                                     <div className="w-16 aspect-square relative flex items-center rounded-lg overflow-hidden transition-all group-hover:scale-105">
                                         <Image
                                             alt="topup_image"
-                                            src="https://cdn.discordapp.com/attachments/717327142978977834/1065807936636583976/ic-truemoneywallet-auto.png"
+                                            src="https://chayapholsmile-shop-v2.vercel.app/pictures/truemoney.png"
                                             draggable="false"
                                             fill
                                             className="select-none object-cover"
@@ -91,7 +91,7 @@ const Topup = ({ configs }) => {
                                 <div className="w-16 aspect-square relative flex items-center rounded-lg overflow-hidden transition-all group-hover:scale-105">
                                     <Image
                                         alt="topup_image"
-                                        src="https://cdn.discordapp.com/attachments/717327142978977834/1076888711972798574/isometric-gift-flat-icon-pixel-perfect-for-mobile-and-web.png"
+                                        src="https://chayapholsmile-shop-v2.vercel.app/pictures/coupon.png"
                                         draggable="false"
                                         fill
                                         className="select-none object-cover"
