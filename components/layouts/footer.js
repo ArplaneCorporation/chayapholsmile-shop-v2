@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FaDiscord, FaFacebookF } from "react-icons/fa";
 import { BsQuestionLg } from "react-icons/bs";
-import { useContext } from "react";
+import { useContext } from "react"
 import ConfigContext from "../../contexts/config/config-context";
 
 const Footer = () => {
