@@ -43,7 +43,8 @@
     "promptparse": "^1.1.1",
     "qrcode": "^1.5.3",
     "uuid": "^9.0.1",
-  "thai-qr-payment": "^1.0.6"
+"promptpay-qr": "git+https://github.com/dtinth/promptpay-qr.git"
+
   },
   "devDependencies": {
     "autoprefixer": "^10.4.13",
