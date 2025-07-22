@@ -2,6 +2,7 @@
 const nextConfig = {
     reactStrictMode: false,
     images: {
+        "i.ibb.co"
     },
 };
 
