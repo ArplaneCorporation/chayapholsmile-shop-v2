@@ -1,54 +1,70 @@
-import { v4 as uuidv4 } from "uuid";
-import QRCode from "qrcode";
-import promptpay from "promptparse";
+import formidable from "formidable";
 import dbConnect from "../../../lib/db-connect";
 import PromptQR from "../../../models/promptqr";
+import Topup from "../../../models/topup";
 import Config from "../../../models/config";
+
+export const config = { api: { bodyParser: false } };
+
+// เรียก OpenSlipVerify API
+async function verifySlipOpenSlip(refNbr, amount) {
+  const resp = await fetch("https://api.openslipverify.com/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refNbr, amount: String(amount), token: process.env.OPENSLIPVERIFY_TOKEN }),
+  });
+  return resp.json();
+}
+
+// ฟังก์ชันเช็คชื่อ: ตรงหรือเป็น prefix ของนามสกุลภาษาอังกฤษ
+function matchReceiver(receivedName, dbTh, dbEn) {
+  if (!receivedName || (!dbTh && !dbEn)) return false;
+  const norm = receivedName.replace(/\s+/g, "").toLowerCase();
+  if (dbTh && norm.includes(dbTh.replace(/\s+/g, "").toLowerCase())) return true;
+  if (dbEn) {
+    const dbNorm = dbEn.split(" ")[0].toLowerCase();
+    return norm.includes(dbNorm);
+  }
+  return false;
+}
 
 export default async function handler(req, res) {
   await dbConnect();
+  if (req.method !== "POST") return res.status(405).json({ success: false, message: "Method not allowed" });
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ success: false, message: "Method not allowed" });
-  }
+  const form = new formidable.IncomingForm();
+  form.parse(req, async (err, fields) => {
+    if (err) return res.status(400).json({ success: false, message: "Upload error" });
+    const { amount, ref } = fields;
+    if (!amount || !ref) return res.status(400).json({ success: false, message: "Incomplete data" });
 
-  const { amount } = req.body;
-  if (!amount) {
-    return res.status(400).json({ success: false, message: "Amount is required" });
-  }
+    try {
+      const qr = await PromptQR.findOne({ ref });
+      if (!qr) throw new Error("ไม่พบ QR นี้");
+      if (qr.used) throw new Error("QR ถูกใช้งานแล้ว");
+      if (qr.expiresAt < new Date()) throw new Error("QR หมดอายุแล้ว");
+      if (parseFloat(amount) !== qr.amount) throw new Error("ยอดเงินไม่ตรงกับ QR");
 
-  // ดึง promptpay_id จาก config
-  const config = await Config.findOne().select("payment.promptpay_id");
-  if (!config || !config.payment || !config.payment.promptpay_id) {
-    return res.status(500).json({ success: false, message: "PromptPay ID ยังไม่ได้ตั้งค่าในระบบ" });
-  }
+      const result = await verifySlipOpenSlip(ref, parseFloat(amount));
+      if (!result.success) throw new Error(result.msg || "ไม่ผ่านการตรวจสอบสลิป");
 
-  const promptpayId = config.payment.promptpay_id;
+      const config = await Config.findOne().select("payment.bank_account_th payment.bank_account_en");
+      const okName = matchReceiver(
+        result.data.receiver.name,
+        config?.payment?.bank_account_th,
+        config?.payment?.bank_account_en
+      );
+      if (!okName) throw new Error("ชื่อบัญชีผู้รับไม่ตรง");
 
-  const ref = uuidv4().slice(0, 8);
-  const expiresAt = new Date(Date.now() + 10 * 60000);
+      qr.used = true;
+      await qr.save();
 
-  const note = `Ref:${ref}|Exp:${expiresAt.toISOString()}`;
+      await Topup.create({ method: "promptpay", amount: qr.amount, ref, status: "success", createdAt: new Date() });
 
-  const payload = promptpay.generatePayload({
-    receiver: promptpayId,
-    amount: parseFloat(amount),
-    message: note,
-  });
-
-  const qrDataUrl = await QRCode.toDataURL(payload);
-
-  await PromptQR.create({
-    ref,
-    amount: parseFloat(amount),
-    expiresAt,
-    used: false,
-  });
-
-  return res.status(200).json({
-    success: true,
-    ref,
-    expiresAt,
-    qr: qrDataUrl,
+      res.status(200).json({ success: true, message: "ตรวจสอบสลิปผ่าน ✓ เติมเงินสำเร็จ" });
+    } catch (e) {
+      await Topup.create({ method: "promptpay", amount: parseFloat(amount), ref, status: "failed", verifyNote: e.message, createdAt: new Date() });
+      res.status(400).json({ success: false, message: e.message });
+    }
   });
 }
