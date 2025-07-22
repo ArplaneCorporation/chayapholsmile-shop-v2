@@ -1,4 +1,4 @@
-import formidable from "formidable";
+import { IncomingForm } from "formidable";
 import dbConnect from "../../../lib/db-connect";
 import PromptQR from "../../../models/promptqr";
 import Topup from "../../../models/topup";
@@ -6,7 +6,6 @@ import Config from "../../../models/config";
 
 export const config = { api: { bodyParser: false } };
 
-// เรียก OpenSlipVerify API
 async function verifySlipOpenSlip(refNbr, amount) {
   const resp = await fetch("https://api.openslipverify.com/", {
     method: "POST",
@@ -16,25 +15,28 @@ async function verifySlipOpenSlip(refNbr, amount) {
   return resp.json();
 }
 
-// ฟังก์ชันเช็คชื่อ: ตรงหรือเป็น prefix ของนามสกุลภาษาอังกฤษ
 function matchReceiver(receivedName, dbTh, dbEn) {
-  if (!receivedName || (!dbTh && !dbEn)) return false;
+  if (!receivedName) return false;
   const norm = receivedName.replace(/\s+/g, "").toLowerCase();
   if (dbTh && norm.includes(dbTh.replace(/\s+/g, "").toLowerCase())) return true;
   if (dbEn) {
-    const dbNorm = dbEn.split(" ")[0].toLowerCase();
-    return norm.includes(dbNorm);
+    const firstEn = dbEn.split(" ")[0].toLowerCase();
+    return norm.includes(firstEn);
   }
   return false;
 }
 
 export default async function handler(req, res) {
   await dbConnect();
-  if (req.method !== "POST") return res.status(405).json({ success: false, message: "Method not allowed" });
 
-  const form = new formidable.IncomingForm();
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false, message: "Method not allowed" });
+  }
+
+  const form = new IncomingForm(); // no default import
   form.parse(req, async (err, fields) => {
-    if (err) return res.status(400).json({ success: false, message: "Upload error" });
+    if (err) return res.status(400).json({ success: false, message: "Parse error" });
+
     const { amount, ref } = fields;
     if (!amount || !ref) return res.status(400).json({ success: false, message: "Incomplete data" });
 
@@ -49,22 +51,35 @@ export default async function handler(req, res) {
       if (!result.success) throw new Error(result.msg || "ไม่ผ่านการตรวจสอบสลิป");
 
       const config = await Config.findOne().select("payment.bank_account_th payment.bank_account_en");
-      const okName = matchReceiver(
+      const okay = matchReceiver(
         result.data.receiver.name,
         config?.payment?.bank_account_th,
         config?.payment?.bank_account_en
       );
-      if (!okName) throw new Error("ชื่อบัญชีผู้รับไม่ตรง");
+      if (!okay) throw new Error("ชื่อบัญชีผู้รับไม่ตรง");
 
       qr.used = true;
       await qr.save();
 
-      await Topup.create({ method: "promptpay", amount: qr.amount, ref, status: "success", createdAt: new Date() });
+      await Topup.create({
+        method: "promptpay",
+        amount: qr.amount,
+        ref,
+        status: "success",
+        createdAt: new Date(),
+      });
 
-      res.status(200).json({ success: true, message: "ตรวจสอบสลิปผ่าน ✓ เติมเงินสำเร็จ" });
+      return res.status(200).json({ success: true, message: "เติมเงินสำเร็จ" });
     } catch (e) {
-      await Topup.create({ method: "promptpay", amount: parseFloat(amount), ref, status: "failed", verifyNote: e.message, createdAt: new Date() });
-      res.status(400).json({ success: false, message: e.message });
+      await Topup.create({
+        method: "promptpay",
+        amount: parseFloat(amount),
+        ref,
+        status: "failed",
+        verifyNote: e.message,
+        createdAt: new Date(),
+      });
+      return res.status(400).json({ success: false, message: e.message });
     }
   });
 }
