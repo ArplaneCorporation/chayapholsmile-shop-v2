@@ -183,7 +183,7 @@ const Topup = ({ configs }) => {
                 </div>
               )}
 
-              {configs.payment?.promptpay && (
+              {configs.payment?.promptpay_qr && (
                 <div
                   onClick={(e) => handleTab(e, "promptpay")}
                   className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
