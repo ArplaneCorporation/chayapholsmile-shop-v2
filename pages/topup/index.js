@@ -1,96 +1,128 @@
-import { useSession } from "next-auth/react";
+import { useState } from "react";
 import Image from "next/image";
-import { useContext, useState } from "react";
 import Layout from "../../components/layouts/main-layout";
 import RedeemCouponTab from "../../components/tabs/topup-coupon";
 import TrueMoneyGiftTab from "../../components/tabs/topups-truemoney-gift";
-import TopupCard from "../../components/ui/cards/topup-card";
-import ConfigContext from "../../contexts/config/config-context";
 
 const Topup = ({ configs }) => {
   const [activeTab, setActiveTab] = useState(
     configs.payment?.truemoney_gift ? "twGift" : "coupon"
   );
   const [amount, setAmount] = useState("");
-  const [refNbr, setRefNbr] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [qrRef, setQrRef] = useState(null);
+  const [qrExpiresAt, setQrExpiresAt] = useState(null);
   const [slipImage, setSlipImage] = useState(null);
-  const [slipResult, setSlipResult] = useState(null);
-  const [verifying, setVerifying] = useState(false);
   const [topupStatus, setTopupStatus] = useState(""); // 'success' | 'failed' | ''
   const [topupMessage, setTopupMessage] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   const handleTab = (e, tab) => {
     e.preventDefault();
     setActiveTab(tab);
-    setSlipResult(null);
     setTopupStatus("");
     setTopupMessage("");
+    setQrDataUrl(null);
+    setQrRef(null);
   };
 
-  const handleVerifySlip = async () => {
-    setVerifying(true);
-    setSlipResult(null);
-    setTopupStatus("");
-    setTopupMessage("");
+  // เรียก API สร้าง QR ใหม่เมื่อ amount เปลี่ยน
+  const fetchPromptPayQr = async (amt) => {
+    if (!amt || amt <= 0) {
+      setQrDataUrl(null);
+      setQrRef(null);
+      return;
+    }
     try {
-      const response = await fetch("https://api.openslipverify.com", {
+      const res = await fetch("/api/promptpay/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          refNbr,
-          amount,
-          token: "7bc437fa-cb4c-4c8c-ab93-c737ca7aebc7",
-        }),
+        body: JSON.stringify({ amount: amt }),
       });
-      const data = await response.json();
-      setSlipResult(data);
-
+      const data = await res.json();
       if (data.success) {
-        // ดึงข้อมูลจาก API
-        const { sender, receiver, amount, transDate, transTime } = data.data;
-
-        // บันทึกการเติมเงินไปยังระบบเดิม
-        try {
-          const saveResponse = await fetch("/api/topup/submit", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              method: "PromptPay",
-              amount: amount,
-              ref: refNbr,
-              data: {
-                sender: sender.displayName,
-                receiver: receiver.displayName,
-                datetime: `${transDate}T${transTime}`,
-              },
-            }),
-          });
-          const result = await saveResponse.json();
-          if (result.success) {
-            setTopupStatus("success");
-            setTopupMessage("เติมเงินสำเร็จ และบันทึกเรียบร้อยแล้ว");
-          } else {
-            setTopupStatus("failed");
-            setTopupMessage("บันทึกไม่สำเร็จ: " + result.message);
-          }
-        } catch (err) {
-          setTopupStatus("failed");
-          setTopupMessage("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-          console.error(err);
-        }
+        setQrDataUrl(data.qr);
+        setQrRef(data.ref);
+        setQrExpiresAt(data.expiresAt);
       } else {
         setTopupStatus("failed");
-        setTopupMessage(data.msg || "ตรวจสอบสลิปไม่สำเร็จ");
+        setTopupMessage("ไม่สามารถสร้าง QR ได้: " + (data.message || "เกิดข้อผิดพลาด"));
+        setQrDataUrl(null);
+        setQrRef(null);
       }
     } catch (error) {
       setTopupStatus("failed");
-      setTopupMessage("เกิดข้อผิดพลาดในการตรวจสอบสลิป");
+      setTopupMessage("เกิดข้อผิดพลาดในการสร้าง QR");
+      setQrDataUrl(null);
+      setQrRef(null);
+    }
+  };
+
+  // เมื่อเปลี่ยนจำนวนเงิน
+  const handleAmountChange = (e) => {
+    const val = e.target.value;
+    setAmount(val);
+    fetchPromptPayQr(val);
+    setTopupStatus("");
+    setTopupMessage("");
+  };
+
+  // อัพโหลดสลิป
+  const handleSlipChange = (e) => {
+    setSlipImage(e.target.files[0]);
+    setTopupStatus("");
+    setTopupMessage("");
+  };
+
+  // ส่งบันทึกเติมเงิน
+  const handleSubmitTopup = async () => {
+    if (!amount || !qrRef) {
+      setTopupStatus("failed");
+      setTopupMessage("กรุณากรอกจำนวนเงินและสร้าง QR ก่อน");
+      return;
+    }
+    if (!slipImage) {
+      setTopupStatus("failed");
+      setTopupMessage("กรุณาแนบรูปสลิปโอนเงิน");
+      return;
+    }
+
+    setVerifying(true);
+    setTopupStatus("");
+    setTopupMessage("");
+
+    // สร้าง FormData สำหรับส่งไฟล์
+    const formData = new FormData();
+    formData.append("method", "promptpay");
+    formData.append("amount", amount);
+    formData.append("ref", qrRef);
+    formData.append("slip", slipImage);
+
+    try {
+      const res = await fetch("/api/topup/submit", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTopupStatus("success");
+        setTopupMessage("เติมเงินสำเร็จและบันทึกเรียบร้อยแล้ว");
+        setAmount("");
+        setSlipImage(null);
+        setQrDataUrl(null);
+        setQrRef(null);
+      } else {
+        setTopupStatus("failed");
+        setTopupMessage("บันทึกไม่สำเร็จ: " + (data.message || "เกิดข้อผิดพลาด"));
+      }
+    } catch (error) {
+      setTopupStatus("failed");
+      setTopupMessage("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       console.error(error);
     }
+
     setVerifying(false);
   };
 
@@ -103,6 +135,7 @@ const Topup = ({ configs }) => {
         >
           <h1 className="text-4xl font-semibold text-center">เติมเงิน</h1>
         </section>
+
         <section className="md:grid md:grid-cols-3 md:gap-4">
           <div id="tab-select" className="md:col-span-1 mb-4 md:mb-0">
             <div className="flex flex-col gap-1.5 p-4 md:sticky md:top-[100px] bg-white border shadow rounded-md">
@@ -110,7 +143,7 @@ const Topup = ({ configs }) => {
                 <div
                   onClick={(e) => handleTab(e, "twGift")}
                   className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
-                    activeTab === "twGift" && `bg-primary/10 text-primary`
+                    activeTab === "twGift" ? "bg-primary/10 text-primary" : ""
                   }`}
                 >
                   <div className="w-16 aspect-square relative">
@@ -127,11 +160,12 @@ const Topup = ({ configs }) => {
                   </div>
                 </div>
               )}
+
               {configs.payment?.truemoney_qr && (
                 <div
                   onClick={(e) => handleTab(e, "twQR")}
                   className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
-                    activeTab === "twQR" && `bg-primary/10 text-primary`
+                    activeTab === "twQR" ? "bg-primary/10 text-primary" : ""
                   }`}
                 >
                   <div className="w-16 aspect-square relative">
@@ -148,11 +182,12 @@ const Topup = ({ configs }) => {
                   </div>
                 </div>
               )}
-              {configs.payment?.promptpay_qr && (
+
+              {configs.payment?.promptpay && (
                 <div
                   onClick={(e) => handleTab(e, "promptpay")}
                   className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
-                    activeTab === "promptpay" && `bg-primary/10 text-primary`
+                    activeTab === "promptpay" ? "bg-primary/10 text-primary" : ""
                   }`}
                 >
                   <div className="w-16 aspect-square relative">
@@ -169,10 +204,11 @@ const Topup = ({ configs }) => {
                   </div>
                 </div>
               )}
+
               <div
                 onClick={(e) => handleTab(e, "coupon")}
                 className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
-                  activeTab === "coupon" && `bg-primary/10 text-primary`
+                  activeTab === "coupon" ? "bg-primary/10 text-primary" : ""
                 }`}
               >
                 <div className="w-16 aspect-square relative">
@@ -195,6 +231,10 @@ const Topup = ({ configs }) => {
             id="tab"
             autoComplete="off"
             className="md:col-span-2 bg-white border rounded-md shadow p-6 flex flex-col gap-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmitTopup();
+            }}
           >
             {activeTab === "twGift" && <TrueMoneyGiftTab />}
             {activeTab === "coupon" && <RedeemCouponTab />}
@@ -204,62 +244,48 @@ const Topup = ({ configs }) => {
                 <label>จำนวนเงิน (บาท):</label>
                 <input
                   type="number"
+                  min={1}
+                  step={0.01}
                   className="border rounded p-2"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={handleAmountChange}
                   placeholder="เช่น 100"
                 />
 
-                {amount && configs.payment?.promptpay_id && (
+                {qrDataUrl && (
                   <div className="mt-4 text-center">
-                    <p className="mb-2">QR PromptPay:</p>
+                    <p className="mb-2">
+                      QR PromptPay (หมดอายุ:{" "}
+                      {new Date(qrExpiresAt).toLocaleTimeString()})
+                    </p>
                     <img
-                      src={`https://promptpay.io/${configs.payment.promptpay_id}/${amount}.png`}
+                      src={qrDataUrl}
                       alt="PromptPay QR"
                       className="w-60 h-60 mx-auto"
                     />
                   </div>
                 )}
 
-                <hr className="my-4" />
-
                 <label>แนบสลิป (รูปภาพ):</label>
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setSlipImage(e.target.files[0])}
-                />
-
-                <label>รหัส QR จากสลิป (refNbr):</label>
-                <input
-                  type="text"
-                  className="border rounded p-2"
-                  value={refNbr}
-                  onChange={(e) => setRefNbr(e.target.value)}
-                  placeholder="คัดลอกจาก QR บนสลิป"
+                  onChange={handleSlipChange}
                 />
 
                 <button
-                  type="button"
-                  onClick={handleVerifySlip}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mt-2"
+                  type="submit"
                   disabled={verifying}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mt-2"
                 >
-                  {verifying ? "กำลังตรวจสอบ..." : "ตรวจสอบสลิป"}
+                  {verifying ? "กำลังบันทึก..." : "บันทึกการเติมเงิน"}
                 </button>
 
                 {topupStatus === "success" && (
                   <p className="text-green-600 font-semibold mt-4">{topupMessage}</p>
                 )}
-
                 {topupStatus === "failed" && (
                   <p className="text-red-600 font-semibold mt-4">{topupMessage}</p>
-                )}
-
-                {slipResult && slipResult.success === false && (
-                  <div className="mt-4 p-2 bg-red-100 rounded">
-                    <p className="text-red-700">{slipResult.msg}</p>
-                  </div>
                 )}
               </>
             )}
