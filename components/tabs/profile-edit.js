@@ -83,7 +83,7 @@ const ProfileEditTab = ({ user }) => {
             const formData = new FormData();
             formData.append('image', selectedFile);
 
-            const { data } = await axios.post('/api/upload', formData, {
+            const { data } = await axios.post('https://api.imgbb.com/1/upload?key=da7790754b7c91f3f7ffe7b5ee7c5146', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -180,7 +180,7 @@ const ProfileEditTab = ({ user }) => {
                     <div className="flex-shrink-0">
                         <img 
                             className="h-16 w-16 rounded-full object-cover"
-                            src={preview || avatar || "/default-avatar.png"} 
+                            src={preview || avatar || "/pictures/user.png"} 
                             alt="Preview"
                         />
                     </div>
