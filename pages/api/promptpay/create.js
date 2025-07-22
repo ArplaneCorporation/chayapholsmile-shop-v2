@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { generatePayload } from "promptpay-qr";
 import dbConnect from "../../../lib/db-connect";
 import PromptQR from "../../../models/promptqr";
-import Config from "../../../models/configs"; // ← เก็บ promptpay id
+import Config from "../../../models/config"; // ← เก็บ promptpay id
 
 export default async function handler(req, res) {
   await dbConnect();
