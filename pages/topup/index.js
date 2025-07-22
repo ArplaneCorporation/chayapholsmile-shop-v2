@@ -42,7 +42,7 @@ const Topup = ({ configs }) => {
                                     <div className="w-16 aspect-square relative flex items-center rounded-lg overflow-hidden transition-all group-hover:scale-105">
                                         <Image
                                             alt="topup_image"
-                                            src="https://cdn.discordapp.com/attachments/717327142978977834/1065807965073969222/ic-truemoneywallet-gift.png"
+                                            src="https://play-lh.googleusercontent.com/eOzvk-ekluYaeLuvDkLb5RJ0KqfFQpodZDnppxPfpEfqEqbNo5erEkmwLBgqP-k-e2kQ"
                                             draggable="false"
                                             fill
                                             className="select-none object-cover"
@@ -67,7 +67,7 @@ const Topup = ({ configs }) => {
                                     <div className="w-16 aspect-square relative flex items-center rounded-lg overflow-hidden transition-all group-hover:scale-105">
                                         <Image
                                             alt="topup_image"
-                                            src="https://cdn.discordapp.com/attachments/717327142978977834/1065807936636583976/ic-truemoneywallet-auto.png"
+                                            src="https://play-lh.googleusercontent.com/eOzvk-ekluYaeLuvDkLb5RJ0KqfFQpodZDnppxPfpEfqEqbNo5erEkmwLBgqP-k-e2kQ"
                                             draggable="false"
                                             fill
                                             className="select-none object-cover"
