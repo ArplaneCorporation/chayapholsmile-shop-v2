@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     }
 
     const config = await PromptConfig.findOne({});
-    if (!config || !config.promptpayId) {
+    if (!config || !config.promptpay_id) {
       return res.status(500).json({ success: false, message: "PromptPay ID not configured" });
     }
 
