@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { generatePayload } from "promptpay-qr";
 import dbConnect from "../../../lib/db-connect";
 import PromptQR from "../../../models/promptqr";
-import PromptConfig from "../../../models/promptconfig"; // ← เก็บ promptpay id
+import Config from "../../../models/configs"; // ← เก็บ promptpay id
 
 export default async function handler(req, res) {
   await dbConnect();
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: "Amount is required" });
     }
 
-    const config = await PromptConfig.findOne({});
+    const config = await Config.findOne({});
     if (!config || !config.promptpay_id) {
       return res.status(500).json({ success: false, message: "PromptPay ID not configured" });
     }
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     const expiresAt = new Date(Date.now() + 10 * 60000);
     const note = `Ref:${ref}|Exp:${expiresAt.toISOString()}`;
 
-    const payload = generatePayload(config.promptpayId, {
+    const payload = generatePayload(config.promptpay_id, {
       amount: parseFloat(amount),
     });
 
