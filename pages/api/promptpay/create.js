@@ -18,8 +18,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: "Amount is required" });
     }
 
-    const config = await Config.findOne({});
-    if (!config || !config.promptpay_id) {
+    const config = await Config.payments.findOne({});
+    if (!config || !config.payments.promptpay_id) {
       return res.status(500).json({ success: false, message: "PromptPay ID not configured" });
     }
 
