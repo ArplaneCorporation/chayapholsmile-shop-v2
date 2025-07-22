@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import promptpay from "promptparse";
 import dbConnect from "../../../lib/db-connect";
 import PromptQR from "../../../models/promptqr";
+import Config from "../../../models/config";
 
 export default async function handler(req, res) {
   await dbConnect();
@@ -16,14 +17,21 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, message: "Amount is required" });
   }
 
+  // ดึง promptpay_id จาก config
+  const config = await Config.findOne().select("payment.promptpay_id");
+  if (!config || !config.payment || !config.payment.promptpay_id) {
+    return res.status(500).json({ success: false, message: "PromptPay ID ยังไม่ได้ตั้งค่าในระบบ" });
+  }
+
+  const promptpayId = config.payment.promptpay_id;
+
   const ref = uuidv4().slice(0, 8);
   const expiresAt = new Date(Date.now() + 10 * 60000);
 
   const note = `Ref:${ref}|Exp:${expiresAt.toISOString()}`;
 
-  // ใช้ generatePayload แทน generate
   const payload = promptpay.generatePayload({
-    receiver: "0812345678", // เปลี่ยนเป็น PromptPay ID ของคุณ
+    receiver: promptpayId,
     amount: parseFloat(amount),
     message: note,
   });
