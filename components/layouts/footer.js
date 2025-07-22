@@ -11,14 +11,9 @@ const Footer = () => {
         <footer className="py-3 w-full border-t backdrop-blur-sm z-50 bg-gray-100/80">
             <div className="max-w-[1150px] px-4 sm:px-6 mx-auto gap-y-2 flex flex-col md:flex-row justify-between items-center">
                 <div className="text-sm md:text-base text-black/60">
-                    © 2023 Skitzer, Develop by{" "}
-                    <a
-                        href="https://www.facebook.com/skitzer.xyz"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:text-primary"
-                    >
-                        Ltwoz
+                    © 2025 ChayapholSmile Shop, Develop by{" "}
+                    <a>
+                        chayapholSmile
                     </a>
                     .
                 </div>
