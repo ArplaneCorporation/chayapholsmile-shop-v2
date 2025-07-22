@@ -40,7 +40,9 @@
     "sharp": "^0.31.3",
     "swr": "^2.0.0",
     "undici": "^5.17.1",
-    "qrcode": "1.5.4"
+    "promptparse": "^1.1.1",
+    "qrcode": "^1.5.3",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.13",
