@@ -50,6 +50,18 @@ const ConfigSchema = mongoose.Schema({
             type: Boolean,
             default: false,
         },
+        promptpay_id: {
+            type: String,
+            default: "",
+        },
+        bank_account_name_th: {
+            type: String,
+            default: "",
+        },
+        bank_account_name_en: {
+            type: String,
+            default: ""
+        },
         truemoney_phone: {
             type: String,
             maxLength: 10,
