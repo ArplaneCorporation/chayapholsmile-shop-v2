@@ -4,6 +4,7 @@ import { useContext, useState } from "react";
 import Layout from "../../components/layouts/main-layout";
 import RedeemCouponTab from "../../components/tabs/topup-coupon";
 import TrueMoneyGiftTab from "../../components/tabs/topups-truemoney-gift";
+import PromptPayQRTab from "../../components/tabs/topups-promptpay-qr"; // ใหม่
 import TopupCard from "../../components/ui/cards/topup-card";
 import ConfigContext from "../../contexts/config/config-context";
 
@@ -46,6 +47,7 @@ const Topup = ({ configs }) => {
                                             draggable="false"
                                             fill
                                             className="select-none object-cover"
+                                            priority
                                         />
                                     </div>
                                     <div>
@@ -71,6 +73,7 @@ const Topup = ({ configs }) => {
                                             draggable="false"
                                             fill
                                             className="select-none object-cover"
+                                            priority
                                         />
                                     </div>
                                     <div>
@@ -78,6 +81,32 @@ const Topup = ({ configs }) => {
                                             TrueMoney Wallet QR
                                         </h3>
                                         <p className="text-sm">เติมเงินด้วย TrueMoney Wallet QR</p>
+                                    </div>
+                                </div>
+                            )}
+                            {configs.payment?.promptpay_qr && (
+                                <div
+                                    onClick={(e) => handleTab(e, "promptpay")}
+                                    className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
+                                        activeTab === "promptpay" &&
+                                        `bg-primary/10 text-primary`
+                                    }`}
+                                >
+                                    <div className="w-16 aspect-square relative flex items-center rounded-lg overflow-hidden transition-all group-hover:scale-105">
+                                        <Image
+                                            alt="promptpay_image"
+                                            src="https://www.img.in.th/images/958f1c1a7d8c6f7c3b5f8e9d0c4b3a2a.png"
+                                            draggable="false"
+                                            fill
+                                            className="select-none object-cover"
+                                            priority
+                                        />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-medium">
+                                            PromptPay QR
+                                        </h3>
+                                        <p className="text-sm">เติมเงินด้วย PromptPay QR</p>
                                     </div>
                                 </div>
                             )}
@@ -90,11 +119,12 @@ const Topup = ({ configs }) => {
                             >
                                 <div className="w-16 aspect-square relative flex items-center rounded-lg overflow-hidden transition-all group-hover:scale-105">
                                     <Image
-                                        alt="topup_image"
+                                        alt="coupon_image"
                                         src="https://cdn.discordapp.com/attachments/717327142978977834/1076888711972798574/isometric-gift-flat-icon-pixel-perfect-for-mobile-and-web.png"
                                         draggable="false"
                                         fill
                                         className="select-none object-cover"
+                                        priority
                                     />
                                 </div>
                                 <div>
@@ -112,6 +142,8 @@ const Topup = ({ configs }) => {
                         className="md:col-span-2 bg-white border rounded-md shadow"
                     >
                         {activeTab === "twGift" && <TrueMoneyGiftTab />}
+                        {activeTab === "twQR" && <TrueMoneyGiftTab isQR />}
+                        {activeTab === "promptpay" && <PromptPayQRTab />}
                         {activeTab === "coupon" && <RedeemCouponTab />}
                     </form>
                 </section>
