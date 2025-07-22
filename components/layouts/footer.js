@@ -13,7 +13,7 @@ const Footer = () => {
                 <div className="text-sm md:text-base text-black/60">
                     © 2025 ChayapholSmile Shop, Develop by{" "}
                     <a>
-                        chayapholSmile
+                        ChayapholSmile
                     </a>
                     .
                 </div>
