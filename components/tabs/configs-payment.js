@@ -21,7 +21,7 @@ const ConfigsPaymentTab = ({ configs, submit }) => {
         payment: {
           truemoney_gift: configs.payment.truemoney_gift || false,
           truemoney_qr: configs.payment.truemoney_qr || false,
-          promptpay: configs.payment.promptpay || false,
+          promptpay_qr : configs.payment.promptpay || false,
           promptpay_id: configs.payment.promptpay_id || "",
         },
       });
