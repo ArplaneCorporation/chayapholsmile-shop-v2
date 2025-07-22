@@ -214,7 +214,7 @@ const Topup = ({ configs }) => {
                   <div className="mt-4 text-center">
                     <p className="mb-2">QR PromptPay:</p>
                     <img
-                      src={`https://promptpay.io/${configs.payment.promptpay_id}/${amount}`}
+                      src={`https://promptpay.io/${configs.payment.promptpay_id}/${amount}.png`}
                       alt="PromptPay QR"
                       className="w-60 h-60 mx-auto"
                     />
