@@ -8,7 +8,7 @@ import TopupCard from "../../components/ui/cards/topup-card";
 import ConfigContext from "../../contexts/config/config-context";
 
 const Topup = ({ configs }) => {
-    const [activeTab, setActiveTab] = useState(.
+    const [activeTab, setActiveTab] = useState(
         configs.payment?.truemoney_gift ? "twGift" : "coupon"
     );
 
