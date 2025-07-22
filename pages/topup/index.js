@@ -26,7 +26,6 @@ const Topup = ({ configs }) => {
     setQrRef(null);
   };
 
-  // เรียก API สร้าง QR ใหม่เมื่อ amount เปลี่ยน
   const fetchPromptPayQr = async (amt) => {
     if (!amt || amt <= 0) {
       setQrDataUrl(null);
@@ -60,7 +59,6 @@ const Topup = ({ configs }) => {
     }
   };
 
-  // เมื่อเปลี่ยนจำนวนเงิน
   const handleAmountChange = (e) => {
     const val = e.target.value;
     setAmount(val);
@@ -69,14 +67,12 @@ const Topup = ({ configs }) => {
     setTopupMessage("");
   };
 
-  // อัพโหลดสลิป
   const handleSlipChange = (e) => {
     setSlipImage(e.target.files[0]);
     setTopupStatus("");
     setTopupMessage("");
   };
 
-  // ส่งบันทึกเติมเงิน
   const handleSubmitTopup = async () => {
     if (!amount || !qrRef) {
       setTopupStatus("failed");
@@ -93,7 +89,6 @@ const Topup = ({ configs }) => {
     setTopupStatus("");
     setTopupMessage("");
 
-    // สร้าง FormData สำหรับส่งไฟล์
     const formData = new FormData();
     formData.append("method", "promptpay");
     formData.append("amount", amount);
@@ -126,13 +121,16 @@ const Topup = ({ configs }) => {
     setVerifying(false);
   };
 
+  // ฟังก์ชันช่วยสร้างคลาสสีแท็บให้เหมือนกันทุกแท็บ (ตามสีธีม primary)
+  const tabClass = (tab) =>
+    `flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
+      activeTab === tab ? "bg-primary/10 text-primary" : ""
+    }`;
+
   return (
     <Layout>
       <main className="max-w-[1150px] px-4 sm:px-[25px] pb-4 sm:pb-[25px] pt-20 md:pt-28 mx-auto items-center">
-        <section
-          id="header"
-          className="md:hidden border-b-2 mx-8 py-4 mb-6"
-        >
+        <section id="header" className="md:hidden border-b-2 mx-8 py-4 mb-6">
           <h1 className="text-4xl font-semibold text-center">เติมเงิน</h1>
         </section>
 
@@ -140,12 +138,7 @@ const Topup = ({ configs }) => {
           <div id="tab-select" className="md:col-span-1 mb-4 md:mb-0">
             <div className="flex flex-col gap-1.5 p-4 md:sticky md:top-[100px] bg-white border shadow rounded-md">
               {configs.payment?.truemoney_gift && (
-                <div
-                  onClick={(e) => handleTab(e, "twGift")}
-                  className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
-                    activeTab === "twGift" ? "bg-primary/10 text-primary" : ""
-                  }`}
-                >
+                <div onClick={(e) => handleTab(e, "twGift")} className={tabClass("twGift")}>
                   <div className="w-16 aspect-square relative">
                     <Image
                       alt="topup_image"
@@ -162,12 +155,7 @@ const Topup = ({ configs }) => {
               )}
 
               {configs.payment?.truemoney_qr && (
-                <div
-                  onClick={(e) => handleTab(e, "twQR")}
-                  className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
-                    activeTab === "twQR" ? "bg-primary/10 text-primary" : ""
-                  }`}
-                >
+                <div onClick={(e) => handleTab(e, "twQR")} className={tabClass("twQR")}>
                   <div className="w-16 aspect-square relative">
                     <Image
                       alt="topup_image"
@@ -184,12 +172,7 @@ const Topup = ({ configs }) => {
               )}
 
               {configs.payment?.promptpay_qr && (
-                <div
-                  onClick={(e) => handleTab(e, "promptpay")}
-                  className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
-                    activeTab === "promptpay" ? "bg-primary/10 text-primary" : ""
-                  }`}
-                >
+                <div onClick={(e) => handleTab(e, "promptpay")} className={tabClass("promptpay")}>
                   <div className="w-16 aspect-square relative">
                     <Image
                       alt="topup_image"
@@ -205,12 +188,7 @@ const Topup = ({ configs }) => {
                 </div>
               )}
 
-              <div
-                onClick={(e) => handleTab(e, "coupon")}
-                className={`flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
-                  activeTab === "coupon" ? "bg-primary/10 text-primary" : ""
-                }`}
-              >
+              <div onClick={(e) => handleTab(e, "coupon")} className={tabClass("coupon")}>
                 <div className="w-16 aspect-square relative">
                   <Image
                     alt="topup_image"
