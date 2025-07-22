@@ -3,8 +3,10 @@ import Image from "next/image";
 import Layout from "../../components/layouts/main-layout";
 import RedeemCouponTab from "../../components/tabs/topup-coupon";
 import TrueMoneyGiftTab from "../../components/tabs/topups-truemoney-gift";
+import { useSession } from "next-auth/react"; // ✅ เพิ่ม
 
 const Topup = ({ configs }) => {
+  const { data: session } = useSession(); // ✅ เพิ่ม
   const [activeTab, setActiveTab] = useState(
     configs.payment?.truemoney_gift ? "twGift" : "coupon"
   );
@@ -13,7 +15,7 @@ const Topup = ({ configs }) => {
   const [qrRef, setQrRef] = useState(null);
   const [qrExpiresAt, setQrExpiresAt] = useState(null);
   const [slipImage, setSlipImage] = useState(null);
-  const [topupStatus, setTopupStatus] = useState(""); // 'success' | 'failed' | ''
+  const [topupStatus, setTopupStatus] = useState("");
   const [topupMessage, setTopupMessage] = useState("");
   const [verifying, setVerifying] = useState(false);
 
@@ -84,6 +86,11 @@ const Topup = ({ configs }) => {
       setTopupMessage("กรุณาแนบรูปสลิปโอนเงิน");
       return;
     }
+    if (!session?.user) {
+      setTopupStatus("failed");
+      setTopupMessage("ไม่สามารถระบุผู้ใช้งานได้ กรุณาเข้าสู่ระบบใหม่");
+      return;
+    }
 
     setVerifying(true);
     setTopupStatus("");
@@ -94,6 +101,7 @@ const Topup = ({ configs }) => {
     formData.append("amount", amount);
     formData.append("ref", qrRef);
     formData.append("slip", slipImage);
+    formData.append("user", session.user._id || session.user.email); // ✅ ใส่ user ให้ backend
 
     try {
       const res = await fetch("/api/topup/submit", {
@@ -121,7 +129,6 @@ const Topup = ({ configs }) => {
     setVerifying(false);
   };
 
-  // ฟังก์ชันช่วยสร้างคลาสสีแท็บให้เหมือนกันทุกแท็บ (ตามสีธีม primary)
   const tabClass = (tab) =>
     `flex items-center gap-4 p-2 rounded-lg hover:bg-primary/10 hover:cursor-pointer ${
       activeTab === tab ? "bg-primary/10 text-primary" : ""
