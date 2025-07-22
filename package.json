@@ -42,7 +42,8 @@
     "undici": "^5.17.1",
     "promptparse": "^1.1.1",
     "qrcode": "^1.5.3",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "promptpay-qr": "^1.2.5"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.13",
