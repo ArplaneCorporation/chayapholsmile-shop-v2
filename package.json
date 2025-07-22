@@ -43,7 +43,8 @@
     "promptparse": "^1.1.1",
     "qrcode": "^1.5.3",
     "uuid": "^9.0.1",
-"promptpay-qr": "git+https://github.com/dtinth/promptpay-qr.git"
+"promptpay-qr": "git+https://github.com/dtinth/promptpay-qr.git",
+"formidable": "^3.5.4"
 
   },
   "devDependencies": {
