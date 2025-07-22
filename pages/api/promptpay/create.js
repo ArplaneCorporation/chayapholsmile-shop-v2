@@ -18,8 +18,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: "Amount is required" });
     }
 
-    const config = await Config.payments.findOne({});
-    if (!config || !config.payments.promptpay_id) {
+    const config = await Config.payment.findOne({});
+    if (!config || !config.payment.promptpay_id) {
       return res.status(500).json({ success: false, message: "PromptPay ID not configured" });
     }
 
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     const expiresAt = new Date(Date.now() + 10 * 60000);
     const note = `Ref:${ref}|Exp:${expiresAt.toISOString()}`;
 
-    const payload = generatePayload(config.promptpay_id, {
+    const payload = generatePayload(config.payment.promptpay_id, {
       amount: parseFloat(amount),
     });
 
