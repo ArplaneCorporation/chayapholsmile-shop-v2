@@ -17,6 +17,7 @@ const ProfileEditTab = ({ user }) => {
 
     const toast = useToast();
 
+    // แสดง Toast เมื่อมี error หรืออัปเดตสำเร็จ
     useEffect(() => {
         if (error) {
             toast.add({
@@ -33,7 +34,6 @@ const ProfileEditTab = ({ user }) => {
                 text: "แก้ไขข้อมูลแล้ว",
                 icon: "success",
             });
-
             setIsUpdated(false);
         }
     }, [error, isUpdated, toast]);
@@ -62,7 +62,7 @@ const ProfileEditTab = ({ user }) => {
         
         // ตรวจสอบประเภทไฟล์
         if (!file.type.match('image.*')) {
-            setError("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+            setError("กรุณาเลือกไฟล์รูปภาพเท่านั้น (PNG, JPG, GIF)");
             return;
         }
         
@@ -75,7 +75,7 @@ const ProfileEditTab = ({ user }) => {
         setSelectedFile(file);
     };
 
-    const uploadImage = async () => {
+    const uploadImageToImgBB = async () => {
         if (!selectedFile) return null;
 
         setIsUploading(true);
@@ -83,15 +83,29 @@ const ProfileEditTab = ({ user }) => {
             const formData = new FormData();
             formData.append('image', selectedFile);
 
-            const { data } = await axios.post('https://api.imgbb.com/1/upload?key=da7790754b7c91f3f7ffe7b5ee7c5146', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
+            const response = await axios.post(
+                'https://api.imgbb.com/1/upload?key=da7790754b7c91f3f7ffe7b5ee7c5146',
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
                 }
-            });
+            );
 
-            return data.url;
+            // ตรวจสอบว่าอัปโหลดสำเร็จ
+            if (!response.data.success) {
+                throw new Error(response.data.error?.message || "อัปโหลดรูปภาพไม่สำเร็จ");
+            }
+
+            // ดึง URL จาก response
+            const imageUrl = response.data.data.image?.url || response.data.data.url;
+            console.log("อัปโหลดสำเร็จ URL:", imageUrl);
+            
+            return imageUrl;
         } catch (error) {
-            setError(error.response?.data?.message || "อัปโหลดรูปภาพไม่สำเร็จ");
+            console.error("ข้อผิดพลาดในการอัปโหลด:", error);
+            setError(error.response?.data?.error?.message || error.message || "อัปโหลดรูปภาพไม่สำเร็จ");
             return null;
         } finally {
             setIsUploading(false);
@@ -104,9 +118,9 @@ const ProfileEditTab = ({ user }) => {
         try {
             let newAvatar = avatar;
             
-            // ถ้ามีการเลือกไฟล์ใหม่ ให้อัปโหลดไฟล์
+            // ถ้ามีการเลือกไฟล์ใหม่ ให้อัปโหลดไฟล์ไปยัง ImgBB
             if (selectedFile) {
-                const uploadedUrl = await uploadImage();
+                const uploadedUrl = await uploadImageToImgBB();
                 if (uploadedUrl) {
                     newAvatar = uploadedUrl;
                     setAvatar(uploadedUrl);
@@ -115,8 +129,8 @@ const ProfileEditTab = ({ user }) => {
                 }
             }
 
+            // อัปเดตข้อมูลโปรไฟล์
             const config = { headers: { "Content-Type": "application/json" } };
-
             const { data } = await axios.patch(
                 `/api/auth/@me`,
                 {
@@ -128,13 +142,17 @@ const ProfileEditTab = ({ user }) => {
                 config
             );
 
-            setIsUpdated(data.success);
+            if (!data.success) {
+                throw new Error(data.message || "อัปเดตโปรไฟล์ไม่สำเร็จ");
+            }
+
+            setIsUpdated(true);
             await refreshSession();
             setConfirmPassword("");
             setSelectedFile(null);
         } catch (error) {
-            setError(error.response?.data?.message || "เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์");
-            console.error(error.message);
+            console.error("ข้อผิดพลาดในการอัปเดต:", error);
+            setError(error.response?.data?.message || error.message || "เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์");
         }
     };
 
@@ -179,9 +197,12 @@ const ProfileEditTab = ({ user }) => {
                 <div className="mt-2 flex items-center gap-4">
                     <div className="flex-shrink-0">
                         <img 
-                            className="h-16 w-16 rounded-full object-cover"
-                            src={preview || avatar || "/pictures/user.png"} 
+                            className="h-16 w-16 rounded-full object-cover border border-gray-200"
+                            src={preview || avatar || "/default-avatar.png"} 
                             alt="Preview"
+                            onError={(e) => {
+                                e.target.src = "/default-avatar.png";
+                            }}
                         />
                     </div>
                     
@@ -201,6 +222,11 @@ const ProfileEditTab = ({ user }) => {
                         <p className="mt-1 text-xs text-gray-500">
                             PNG, JPG, GIF ขนาดไม่เกิน 5MB
                         </p>
+                        {isUploading && (
+                            <p className="mt-1 text-xs text-blue-600">
+                                กำลังอัปโหลดรูปภาพ...
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -224,16 +250,16 @@ const ProfileEditTab = ({ user }) => {
                     type="button"
                     onClick={handleSubmit}
                     disabled={isUploading}
-                    className={`inline-flex items-center bg-primary rounded-md transition-all overflow-hidden ${isUploading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    className={`inline-flex items-center bg-blue-600 rounded-md transition-all overflow-hidden ${isUploading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
                 >
-                    <div className="w-full h-full inline-flex items-center justify-center font-medium text-white hover:backdrop-brightness-95 py-2 px-4">
+                    <div className="w-full h-full inline-flex items-center justify-center font-medium text-white py-2 px-4">
                         {isUploading ? (
                             <>
                                 <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                <span className="block">กำลังอัปโหลด...</span>
+                                <span className="block">กำลังบันทึก...</span>
                             </>
                         ) : (
                             <>
