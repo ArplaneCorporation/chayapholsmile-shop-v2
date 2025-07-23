@@ -21,7 +21,7 @@ import { AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { useToast } from "../../../contexts/toast/toast-context";
 
-// Dynamic Import Modals
+// Dynamic Import Modals.
 const NewProductModal = dynamic(() =>
     import("../../../components/ui/modals/new-product-modal")
 );
@@ -48,15 +48,15 @@ const AdminProducts = () => {
     } = useContext(ProductContext);
     const { getAdminDetailsCategory, category } = useContext(CategoryContext);
 
-    // Modals State
+    // Modals State.
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
 
-    // CRUD State
+    // CRUD State.
     const [loading, setLoading] = useState(true);
 
-    // Products State
+    // Products State.
     const [products, setProducts] = useState([]);
     const [product, setProduct] = useState("");
 
@@ -73,7 +73,8 @@ const AdminProducts = () => {
             console.error;
             setLoading(false);
         });
-    }, [cid, error, success, isUpdated, isStockUpdated, isDeleted]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [error, success, isUpdated, isStockUpdated, isDeleted]);
 
     useEffect(() => {
         if (error) {
@@ -132,13 +133,13 @@ const AdminProducts = () => {
     ]);
 
     useEffect(() => {
-        if (cid) {
-            getAdminDetailsCategory(cid);
-        }
-    }, [cid, getAdminDetailsCategory]);
+        getAdminDetailsCategory(cid);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const deleteHandler = (e, product) => {
         e.preventDefault();
+
         deleteProduct(product._id);
     };
 
@@ -146,10 +147,7 @@ const AdminProducts = () => {
         <Layout>
             <AnimatePresence>
                 {isNewModalOpen && (
-                    <NewProductModal 
-                        setIsOpen={setIsNewModalOpen} 
-                        categoryId={cid}
-                    />
+                    <NewProductModal setIsOpen={setIsNewModalOpen} />
                 )}
                 {isUpdateModalOpen && (
                     <UpdateProductModal
@@ -188,7 +186,11 @@ const AdminProducts = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setIsNewModalOpen(true)}
+                                    onClick={() =>
+                                        setIsNewModalOpen(
+                                            (prevState) => !prevState
+                                        )
+                                    }
                                     className="inline-flex items-center bg-primary rounded-md transition-all overflow-hidden"
                                 >
                                     <div className="w-full h-full inline-flex items-center justify-center font-medium text-white hover:backdrop-brightness-95 py-2 px-4">
@@ -295,8 +297,15 @@ const AdminProducts = () => {
                                                             "STOCK" && (
                                                             <button
                                                                 onClick={() => {
-                                                                    setProduct(product);
-                                                                    setIsStockModalOpen(true);
+                                                                    setProduct(
+                                                                        product
+                                                                    );
+                                                                    setIsStockModalOpen(
+                                                                        (
+                                                                            prevState
+                                                                        ) =>
+                                                                            !prevState
+                                                                    );
                                                                 }}
                                                                 className="transform hover:text-primary hover:scale-110 transition-all border hover:border-primary rounded-full p-2"
                                                             >
@@ -318,8 +327,15 @@ const AdminProducts = () => {
                                                         )}
                                                         <button
                                                             onClick={() => {
-                                                                setProduct(product);
-                                                                setIsUpdateModalOpen(true);
+                                                                setProduct(
+                                                                    product
+                                                                );
+                                                                setIsUpdateModalOpen(
+                                                                    (
+                                                                        prevState
+                                                                    ) =>
+                                                                        !prevState
+                                                                );
                                                             }}
                                                             className="transform hover:text-primary hover:scale-110 transition-all border hover:border-primary rounded-full p-2"
                                                         >
@@ -339,39 +355,8 @@ const AdminProducts = () => {
                                                             </svg>
                                                         </button>
                                                         <button
-                                                            onClick={(e) => deleteHandler(e, product)}
-                                                            className="transform text-red-600 hover:scale-110 transition-all border hover:border-red-600 rounded-full p-2"
-                                                        >
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                fill="none"
-                                                                viewBox="0 0 24 24"
-                                                                stroke="currentColor"
-                                                                className="w-5 h-5"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth="2"
-                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                                />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </section>
-                )}
-            </main>
-        </Layout>
-    );
-};
-
-export default AdminProducts;
-
-export { getServerSideProps } from "../../../utils/get-init-data";
+                                                            onClick={(e) =>
+                                                                deleteHandler(
+                                                                    e,
+                                                                    product
+                                                             
