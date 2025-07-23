@@ -109,7 +109,7 @@ const NewCategoryModal = ({ setIsOpen }) => {
                         className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base"
                     />
                 </div>
-                {type === "ID_PASS" && (
+                {type.value === "ID_PASS" && (
                     <div className="col-span-6 md:col-span-3 flex items-center">
                         <label className="inline-flex relative items-center">
                             <input
