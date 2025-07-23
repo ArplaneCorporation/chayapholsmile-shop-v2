@@ -13,25 +13,20 @@ async function handler(req, res) {
             try {
                 const { phone, gift_url } = req.body;
 
-                if (!req.user) {
-                    return res.status(401).json({
-                        success: false,
-                        message: "คุณยังไม่ได้เข้าสู่ระบบ",
-                    });
-                }
-
                 const nanoid = customAlphabet(
                     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
                     10
                 );
 
                 const wallet = new TrueWallet(phone);
-                const redeemed = await wallet.redeem(gift_url);
 
-                if (!redeemed.success) {
+                const redeemed = await wallet
+                    .redeem(gift_url)
+
+                if (!redeemed) {
                     return res.status(406).json({
                         success: false,
-                        message: redeemed.message || "ลิงก์นี้ถูกใช้งานไปแล้ว",
+                        message: "ลิงก์นี้ถูกใช้งานไปแล้ว",
                     });
                 }
 
@@ -43,8 +38,14 @@ async function handler(req, res) {
                     user: req.user.id,
                 });
 
+                //* New point after topup
+                const newPoint = req.user.point + redeemed.amount;
+
+                //* Update point
                 const user = await User.findById(req.user.id);
-                user.point += redeemed.amount;
+                user.point = newPoint;
+
+                //* Save
                 await user.save({ validateBeforeSave: false });
 
                 return res.status(200).json({
@@ -52,17 +53,18 @@ async function handler(req, res) {
                     topup,
                 });
             } catch (error) {
-                console.error("Topup Error:", error);
                 res.status(500).json({
                     success: false,
                     message: "ไม่สามารถดำเนินการได้",
                 });
             }
+            break;
         default:
-            return res.status(405).json({
+            res.status(405).json({
                 success: false,
                 message: "Method not allowed.",
             });
+            break;
     }
 }
 
