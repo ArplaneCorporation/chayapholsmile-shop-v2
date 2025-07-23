@@ -3,11 +3,11 @@ import Image from "next/image";
 import Layout from "../../components/layouts/main-layout";
 import RedeemCouponTab from "../../components/tabs/topup-coupon";
 import TrueMoneyGiftTab from "../../components/tabs/topups-truemoney-gift";
-import { useSession } from "next-auth/react";
+
+const GITHUB_IMG_ROOT =
+  "https://raw.githubusercontent.com/ArplaneCorporation/chayapholsmile-shop-v2/main/pictures";
 
 const Topup = ({ configs }) => {
-  const { data: session } = useSession();
-
   const [activeTab, setActiveTab] = useState(
     configs.payment?.truemoney_gift ? "twGift" : "coupon"
   );
@@ -77,12 +77,6 @@ const Topup = ({ configs }) => {
   };
 
   const handleSubmitTopup = async () => {
-    if (!session?.user?._id) {
-      setTopupStatus("failed");
-      setTopupMessage("ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่");
-      return;
-    }
-
     if (!amount || !qrRef) {
       setTopupStatus("failed");
       setTopupMessage("กรุณากรอกจำนวนเงินและสร้าง QR ก่อน");
@@ -100,10 +94,8 @@ const Topup = ({ configs }) => {
 
     const formData = new FormData();
     formData.append("method", "promptpay");
-    formData.append("type", "promptpay"); // 💡 ใช้เป็นประเภทเติมเงิน
-    formData.append("user", session.user._id); // 💡 ส่ง user id ไปให้ backend
     formData.append("amount", amount);
-    formData.append("reference", qrRef);
+    formData.append("ref", qrRef);
     formData.append("slip", slipImage);
 
     try {
@@ -150,7 +142,12 @@ const Topup = ({ configs }) => {
               {configs.payment?.truemoney_gift && (
                 <div onClick={(e) => handleTab(e, "twGift")} className={tabClass("twGift")}>
                   <div className="w-16 aspect-square relative">
-                    <Image alt="topup_image" src="/pictures/truemoney.png" fill className="object-cover" />
+                    <Image
+                      alt="topup_image"
+                      src={`${GITHUB_IMG_ROOT}/truemoney.png`}
+                      fill
+                      className="select-none object-cover"
+                    />
                   </div>
                   <div>
                     <h3 className="font-medium">TrueMoney Wallet Gift</h3>
@@ -158,10 +155,33 @@ const Topup = ({ configs }) => {
                   </div>
                 </div>
               )}
+
+              {configs.payment?.truemoney_qr && (
+                <div onClick={(e) => handleTab(e, "twQR")} className={tabClass("twQR")}>
+                  <div className="w-16 aspect-square relative">
+                    <Image
+                      alt="topup_image"
+                      src={`${GITHUB_IMG_ROOT}/truemoney.png`}
+                      fill
+                      className="select-none object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">TrueMoney Wallet QR</h3>
+                    <p className="text-sm">เติมเงินด้วย TrueMoney Wallet QR</p>
+                  </div>
+                </div>
+              )}
+
               {configs.payment?.promptpay_qr && (
                 <div onClick={(e) => handleTab(e, "promptpay")} className={tabClass("promptpay")}>
                   <div className="w-16 aspect-square relative">
-                    <Image alt="topup_image" src="/pictures/promptpay.png" fill className="object-cover" />
+                    <Image
+                      alt="topup_image"
+                      src={`${GITHUB_IMG_ROOT}/promptpay.png`}
+                      fill
+                      className="select-none object-cover"
+                    />
                   </div>
                   <div>
                     <h3 className="font-medium">PromptPay</h3>
@@ -169,9 +189,15 @@ const Topup = ({ configs }) => {
                   </div>
                 </div>
               )}
+
               <div onClick={(e) => handleTab(e, "coupon")} className={tabClass("coupon")}>
                 <div className="w-16 aspect-square relative">
-                  <Image alt="topup_image" src="/pictures/coupon.png" fill className="object-cover" />
+                  <Image
+                    alt="topup_image"
+                    src={`${GITHUB_IMG_ROOT}/coupon.png`}
+                    fill
+                    className="select-none object-cover"
+                  />
                 </div>
                 <div>
                   <h3 className="font-medium">Redeem Coupon Code</h3>
@@ -192,6 +218,7 @@ const Topup = ({ configs }) => {
           >
             {activeTab === "twGift" && <TrueMoneyGiftTab />}
             {activeTab === "coupon" && <RedeemCouponTab />}
+
             {activeTab === "promptpay" && (
               <>
                 <label>จำนวนเงิน (บาท):</label>
@@ -210,12 +237,20 @@ const Topup = ({ configs }) => {
                     <p className="mb-2">
                       QR PromptPay (หมดอายุ: {new Date(qrExpiresAt).toLocaleTimeString()})
                     </p>
-                    <img src={qrDataUrl} alt="PromptPay QR" className="w-60 h-60 mx-auto" />
+                    <img
+                      src={qrDataUrl}
+                      alt="PromptPay QR"
+                      className="w-60 h-60 mx-auto"
+                    />
                   </div>
                 )}
 
                 <label>แนบสลิป (รูปภาพ):</label>
-                <input type="file" accept="image/*" onChange={handleSlipChange} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSlipChange}
+                />
 
                 <button
                   type="submit"
@@ -241,5 +276,7 @@ const Topup = ({ configs }) => {
 };
 
 Topup.auth = true;
+
 export { getServerSideProps } from "../../utils/get-init-data";
+
 export default Topup;
