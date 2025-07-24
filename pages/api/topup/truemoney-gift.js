@@ -1,71 +1,48 @@
-import dbConnect from "../../../lib/db-connect";
-import Topup from "../../../models/topup";
-import User from "../../../models/user";
-import { customAlphabet } from "nanoid";
-import TrueWallet from "../../../lib/TrueWallet";
-import { isAuthenticatedUser } from "../../../middlewares/auth";
+const { phone, gift_url } = req.body;
 
-async function handler(req, res) {
-    await dbConnect();
+// ดึง token จาก URL gift_url เช่น ?v=...
+const urlObj = new URL(gift_url);
+const token = urlObj.searchParams.get("v");
 
-    switch (req.method) {
-        case "POST":
-            try {
-                const { phone, gift_url } = req.body;
-
-                const nanoid = customAlphabet(
-                    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-                    10
-                );
-
-                const wallet = new TrueWallet(phone);
-
-                const redeemed = await wallet
-                    .redeem(gift_url)
-
-                if (!redeemed) {
-                    return res.status(406).json({
-                        success: false,
-                        message: "ลิงก์นี้ถูกใช้งานไปแล้ว",
-                    });
-                }
-
-                const topup = await Topup.create({
-                    _id: nanoid(),
-                    type: "TRUEMONEY_GIFT",
-                    amount: redeemed.amount,
-                    reference: gift_url,
-                    user: req.user.id,
-                });
-
-                //* New point after topup
-                const newPoint = req.user.point + redeemed.amount;
-
-                //* Update point
-                const user = await User.findById(req.user.id);
-                user.point = newPoint;
-
-                //* Save
-                await user.save({ validateBeforeSave: false });
-
-                return res.status(200).json({
-                    success: true,
-                    topup,
-                });
-            } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "ไม่สามารถดำเนินการได้",
-                });
-            }
-            break;
-        default:
-            res.status(405).json({
-                success: false,
-                message: "Method not allowed.",
-            });
-            break;
-    }
+if (!token) {
+    return res.status(400).json({
+        success: false,
+        message: "ลิงก์ไม่ถูกต้อง ไม่มี token 'v' ใน URL",
+    });
 }
 
-export default isAuthenticatedUser(handler);
+const nanoid = customAlphabet(
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+    10
+);
+
+const wallet = new TrueWallet(phone);
+
+const redeemed = await wallet.redeem(token); // ส่งแค่ token ไป redeem
+
+if (!redeemed) {
+    return res.status(406).json({
+        success: false,
+        message: "ลิงก์นี้ถูกใช้งานไปแล้ว",
+    });
+}
+
+// สร้างรายการ topup
+const topup = await Topup.create({
+    _id: nanoid(),
+    type: "TRUEMONEY_GIFT",
+    amount: redeemed.amount,
+    reference: gift_url,  // เก็บทั้งลิงก์ไว้
+    user: req.user.id,
+});
+
+// อัพเดต point ผู้ใช้
+const newPoint = req.user.point + redeemed.amount;
+const user = await User.findById(req.user.id);
+user.point = newPoint;
+await user.save({ validateBeforeSave: false });
+
+return res.status(200).json({
+    success: true,
+    topup,
+});
