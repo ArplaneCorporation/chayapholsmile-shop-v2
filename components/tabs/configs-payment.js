@@ -1,9 +1,9 @@
 import { useState } from "react";
 
 const ConfigsPaymentTab = ({ configs, submit }) => {
-  const [isTmGift, setIsTmGift] = useState(configs?.payment?.truemoney_gift || false);
-  const [isTmQr, setIsTmQr] = useState(configs?.payment?.truemoney_qr || false);
-  const [isTrueMoney, setIsTrueMoney] = useState(configs?.payment?.truemoney || false);
+  const [isTmGift, setIsTmGift] = useState(configs?.payment?.truemoney_gift);
+  const [isTmQr, setIsTmQr] = useState(configs?.payment?.truemoney_qr);
+  const [isTrueMoney, setIsTrueMoney] = useState(configs?.payment?.truemoney);
   const [isPpQr, setIsPpQr] = useState(configs?.payment?.promptpay_qr || false);
 
   const [twPhone, setTwPhone] = useState(configs?.payment?.truemoney_phone || "");
@@ -11,7 +11,7 @@ const ConfigsPaymentTab = ({ configs, submit }) => {
   const [bankAccountNameTh, setBankAccountNameTh] = useState(configs?.payment?.bank_account_name_th || "");
   const [bankAccountNameEn, setBankAccountNameEn] = useState(configs?.payment?.bank_account_name_en || "");
 
-  // ค่าธรรมเนียม (ตัวอย่าง)
+  // **เพิ่มฟิลด์ค่าธรรมเนียม**
   const [tmGiftFeeValue, setTmGiftFeeValue] = useState(configs?.payment?.truemoney_gift_fee_value || "");
   const [tmGiftFeeType, setTmGiftFeeType] = useState(configs?.payment?.truemoney_gift_fee_type || "amount");
 
@@ -35,6 +35,7 @@ const ConfigsPaymentTab = ({ configs, submit }) => {
         bank_account_name_th: bankAccountNameTh,
         bank_account_name_en: bankAccountNameEn,
 
+        // ส่งค่าธรรมเนียมด้วย
         truemoney_gift_fee_value: tmGiftFeeValue,
         truemoney_gift_fee_type: tmGiftFeeType,
 
