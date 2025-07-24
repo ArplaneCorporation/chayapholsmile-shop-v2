@@ -65,7 +65,7 @@ const Topup = ({ configs }) => {
   const handleAmountChange = (e) => {
     const val = e.target.value;
     setAmount(val);
-    fetchPromptPayQr(val);
+    fetchPromptPayQr(Number(val));
     setTopupStatus("");
     setTopupMessage("");
   };
@@ -93,10 +93,12 @@ const Topup = ({ configs }) => {
     setTopupMessage("");
 
     const formData = new FormData();
-    formData.append("method", "promptpay");
+
+    // ส่ง user จาก configs (แก้ตามระบบ user จริงที่คุณใช้)
+    formData.append("user", configs.user || "guest");
+    formData.append("file", slipImage); // key ต้องเป็น 'file' ตาม API
     formData.append("amount", amount);
     formData.append("ref", qrRef);
-    formData.append("slip", slipImage);
 
     try {
       const res = await fetch("/api/topup/submit", {
