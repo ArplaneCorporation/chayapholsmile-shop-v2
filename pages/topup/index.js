@@ -20,13 +20,12 @@ const Topup = ({ configs }) => {
   const [topupMessage, setTopupMessage] = useState("");
   const [verifying, setVerifying] = useState(false);
 
-  const handleTab = (e, tab) => {
-    e.preventDefault();
-    setActiveTab(tab);
-    setTopupStatus("");
-    setTopupMessage("");
-    setQrDataUrl(null);
-    setQrRef(null);
+  // ฟังก์ชันคำนวณค่าธรรมเนียม
+  const calculateFee = (amount, feeType, feeValue) => {
+    if (!feeValue || isNaN(feeValue) || amount <= 0) return 0;
+    return feeType === "percent"
+      ? (Number(amount) * Number(feeValue)) / 100
+      : Number(feeValue);
   };
 
   const fetchPromptPayQr = async (amt) => {
@@ -65,7 +64,9 @@ const Topup = ({ configs }) => {
   const handleAmountChange = (e) => {
     const val = e.target.value;
     setAmount(val);
-    fetchPromptPayQr(Number(val));
+    if (activeTab === "promptpay") {
+      fetchPromptPayQr(Number(val));
+    }
     setTopupStatus("");
     setTopupMessage("");
   };
@@ -131,6 +132,26 @@ const Topup = ({ configs }) => {
       activeTab === tab ? "bg-primary/10 text-primary" : ""
     }`;
 
+  // ดึงค่าธรรมเนียมจาก configs
+  const getFeeDisplay = () => {
+    if (activeTab === "promptpay") {
+      const fee = calculateFee(amount, configs.payment.promptpay_qr_fee_type, configs.payment.promptpay_qr_fee_value);
+      if (!fee || fee === 0) return "-";
+      return `${fee.toFixed(2)} บาท (${configs.payment.promptpay_qr_fee_type === "percent" ? configs.payment.promptpay_qr_fee_value + "%" : "ค่าธรรมเนียมคงที่"})`;
+    }
+    if (activeTab === "twGift") {
+      const fee = calculateFee(amount, configs.payment.truemoney_gift_fee_type, configs.payment.truemoney_gift_fee_value);
+      if (!fee || fee === 0) return "-";
+      return `${fee.toFixed(2)} บาท (${configs.payment.truemoney_gift_fee_type === "percent" ? configs.payment.truemoney_gift_fee_value + "%" : "ค่าธรรมเนียมคงที่"})`;
+    }
+    if (activeTab === "twQR") {
+      const fee = calculateFee(amount, configs.payment.truemoney_qr_fee_type, configs.payment.truemoney_qr_fee_value);
+      if (!fee || fee === 0) return "-";
+      return `${fee.toFixed(2)} บาท (${configs.payment.truemoney_qr_fee_type === "percent" ? configs.payment.truemoney_qr_fee_value + "%" : "ค่าธรรมเนียมคงที่"})`;
+    }
+    return "-";
+  };
+
   return (
     <Layout>
       <main className="max-w-[1150px] px-4 sm:px-[25px] pb-4 sm:pb-[25px] pt-20 md:pt-28 mx-auto items-center">
@@ -142,7 +163,7 @@ const Topup = ({ configs }) => {
           <div id="tab-select" className="md:col-span-1 mb-4 md:mb-0">
             <div className="flex flex-col gap-1.5 p-4 md:sticky md:top-[100px] bg-white border shadow rounded-md">
               {configs.payment?.truemoney_gift && (
-                <div onClick={(e) => handleTab(e, "twGift")} className={tabClass("twGift")}>
+                <div onClick={(e) => setActiveTab("twGift")} className={tabClass("twGift")}>
                   <div className="w-16 aspect-square relative">
                     <Image
                       alt="topup_image"
@@ -159,7 +180,7 @@ const Topup = ({ configs }) => {
               )}
 
               {configs.payment?.truemoney_qr && (
-                <div onClick={(e) => handleTab(e, "twQR")} className={tabClass("twQR")}>
+                <div onClick={(e) => setActiveTab("twQR")} className={tabClass("twQR")}>
                   <div className="w-16 aspect-square relative">
                     <Image
                       alt="topup_image"
@@ -176,7 +197,7 @@ const Topup = ({ configs }) => {
               )}
 
               {configs.payment?.promptpay_qr && (
-                <div onClick={(e) => handleTab(e, "promptpay")} className={tabClass("promptpay")}>
+                <div onClick={(e) => setActiveTab("promptpay")} className={tabClass("promptpay")}>
                   <div className="w-16 aspect-square relative">
                     <Image
                       alt="topup_image"
@@ -192,7 +213,7 @@ const Topup = ({ configs }) => {
                 </div>
               )}
 
-              <div onClick={(e) => handleTab(e, "coupon")} className={tabClass("coupon")}>
+              <div onClick={(e) => setActiveTab("coupon")} className={tabClass("coupon")}>
                 <div className="w-16 aspect-square relative">
                   <Image
                     alt="topup_image"
@@ -218,6 +239,7 @@ const Topup = ({ configs }) => {
               handleSubmitTopup();
             }}
           >
+            {/* แสดง tab ตามเลือก */}
             {activeTab === "twGift" && <TrueMoneyGiftTab />}
             {activeTab === "coupon" && <RedeemCouponTab />}
 
@@ -233,6 +255,10 @@ const Topup = ({ configs }) => {
                   onChange={handleAmountChange}
                   placeholder="เช่น 100"
                 />
+
+                <p className="mt-2 font-semibold">
+                  ค่าธรรมเนียม: {getFeeDisplay()}
+                </p>
 
                 {qrDataUrl && (
                   <div className="mt-4 text-center">
