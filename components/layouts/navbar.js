@@ -132,7 +132,7 @@ const Navbar = () => {
                                     alt="avatar"
                                     src={
                                         user?.avatar ||
-                                        "https://cdn.discordapp.com/attachments/717327142978977834/1074905721411469413/avatar.png"
+                                        "/default-avatar.png"
                                     }
                                     draggable="false"
                                     fill
