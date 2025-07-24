@@ -1,4 +1,5 @@
 import { IncomingForm } from "formidable";
+import fs from "fs";
 import dbConnect from "../../../lib/db-connect";
 import PromptQR from "../../../models/promptqr";
 import Topup from "../../../models/topup";
@@ -6,51 +7,63 @@ import Config from "../../../models/config";
 
 export const config = { api: { bodyParser: false } };
 
-async function verifySlipOpenSlip(refNbr, amount) {
-  const resp = await fetch("https://api.openslipverify.com/", {
+async function verifySlipFromImage(imgBase64) {
+  const resp = await fetch("https://slip-c.oiioioiiioooioio.download/api/slip", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refNbr, amount: String(amount), token: process.env.OPENSLIPVERIFY_TOKEN }),
+    body: JSON.stringify({ img: imgBase64 }),
   });
+
+  if (!resp.ok) throw new Error("ไม่สามารถเชื่อมต่อกับ slip API ได้");
+
   return resp.json();
 }
 
-function matchReceiver(name, dbTh, dbEn) {
-  if (!name) return false;
-  const norm = name.replace(/\s+/g, "").toLowerCase();
-  if (dbTh && norm.includes(dbTh.replace(/\s+/g, "").toLowerCase())) return true;
-  if (dbEn) {
-    const prefix = dbEn.split(" ")[0].toLowerCase();
-    return norm.includes(prefix);
-  }
-  return false;
+function normalize(str) {
+  return str?.replace(/\s+/g, "").toLowerCase() || "";
 }
 
 export default async function handler(req, res) {
   await dbConnect();
-  if (req.method !== "POST") return res.status(405).json({ success: false, message: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false, message: "Method not allowed" });
+  }
 
-  const form = new IncomingForm();
-  form.parse(req, async (err, fields) => {
+  const form = new IncomingForm({ multiples: false });
+
+  form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ success: false, message: "Parse error" });
 
-    const { amount, ref, user } = fields;
-    if (!amount || !ref || !user) return res.status(400).json({ success: false, message: "Incomplete data" });
+    const { user } = fields;
+    const file = files.file;
+
+    if (!user || !file) {
+      return res.status(400).json({ success: false, message: "Missing user or file" });
+    }
 
     try {
+      const imageData = fs.readFileSync(file.filepath, { encoding: "base64" });
+      const base64Image = `data:image/png;base64,${imageData}`;
+
+      const slip = await verifySlipFromImage(base64Image);
+
+      const { ref, receiver_name, amount } = slip.data;
+      if (!ref || !receiver_name || !amount) throw new Error("ข้อมูลสลิปไม่สมบูรณ์");
+
+      const cfg = await Config.findOne().select("payment.bank_account_name_en");
+      const expectedName = cfg?.payment?.bank_account_name_en;
+
+      if (normalize(receiver_name) !== normalize(expectedName)) {
+        throw new Error("ชื่อผู้รับเงินไม่ตรงกัน");
+      }
+
       const qr = await PromptQR.findOne({ ref });
-      if (!qr) throw new Error("QR not found");
-      if (qr.used) throw new Error("QR already used");
-      if (qr.expiresAt < new Date()) throw new Error("QR expired");
-      if (parseFloat(amount) !== qr.amount) throw new Error("Amount mismatch");
+      if (!qr) throw new Error("QR ไม่พบ");
+      if (qr.used) throw new Error("QR ถูกใช้งานไปแล้ว");
+      if (qr.expiresAt < new Date()) throw new Error("QR หมดอายุแล้ว");
+      if (parseFloat(amount) !== qr.amount) throw new Error("ยอดเงินไม่ตรงกับ QR");
 
-      const result = await verifySlipOpenSlip(ref, parseFloat(amount));
-      if (!result.success) throw new Error(result.msg || "Slip not verified");
-
-      const cfg = await Config.findOne().select("payment.bank_account_th payment.bank_account_en");
-      const ok = matchReceiver(result.data.receiver.name, cfg?.payment?.bank_account_th, cfg?.payment?.bank_account_en);
-      if (!ok) throw new Error("Receiver name mismatch");
-
+      // สำเร็จ
       qr.used = true;
       await qr.save();
 
@@ -66,13 +79,14 @@ export default async function handler(req, res) {
       });
 
       return res.status(200).json({ success: true, message: "เติมเงินสำเร็จ" });
+
     } catch (e) {
       await Topup.create({
-        user: user,
-        reference: ref,
+        user,
+        reference: "unknown",
         type: "promptpay",
         method: "promptpay",
-        amount: parseFloat(amount),
+        amount: 0,
         status: "failed",
         verifyNote: e.message,
         createdAt: new Date(),
