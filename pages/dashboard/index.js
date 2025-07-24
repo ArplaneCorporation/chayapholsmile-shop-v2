@@ -223,7 +223,7 @@ const Dashboard = () => {
                     />
                 </section>
 
-   /*    <section
+{/*    <section
                     id="stats-group-third"
                     className="grid grid-cols-2 gap-4 mb-4"
                 >
@@ -235,9 +235,9 @@ const Dashboard = () => {
                         <h2 className="mb-1 text-lg">รายได้เดือนนี้</h2>
                         <Line data={monthData} />
                     </div>
-                </section>
+                </section> */}
 
-              <section
+{/*  <section
                     id="best-selling"
                     className="grid grid-cols-7 gap-4 mb-4"
                 >
@@ -249,7 +249,7 @@ const Dashboard = () => {
                         <h2 className="mb-1">อันดับเติมเงิน</h2>
                         
                     </div>
-                </section> */
+                </section>   */}
             </main>
         </Layout>
     );
