@@ -1,5 +1,4 @@
 import axios from "axios";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useToast } from "../../contexts/toast/toast-context";
 import refreshSession from "../../utils/refresh-session";
@@ -9,6 +8,7 @@ const ProfileEditTab = ({ user }) => {
   const [email, setEmail] = useState(user?.email);
   const [avatar, setAvatar] = useState(user?.avatar);
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -18,7 +18,6 @@ const ProfileEditTab = ({ user }) => {
 
   const toast = useToast();
 
-  // แสดง Toast เมื่อมี error หรืออัปเดตสำเร็จ
   useEffect(() => {
     if (error) {
       toast.add({
@@ -35,11 +34,12 @@ const ProfileEditTab = ({ user }) => {
         text: "แก้ไขข้อมูลแล้ว",
         icon: "success",
       });
+
       setIsUpdated(false);
     }
   }, [error, isUpdated, toast]);
 
-  // สร้าง preview เมื่อเลือกไฟล์ใหม่
+  // สร้าง preview รูปเมื่อเลือกไฟล์
   useEffect(() => {
     if (!selectedFile) {
       setPreview(null);
@@ -52,27 +52,7 @@ const ProfileEditTab = ({ user }) => {
     return () => URL.revokeObjectURL(objectUrl);
   }, [selectedFile]);
 
-  const handleFileChange = (e) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      setSelectedFile(null);
-      return;
-    }
-
-    const file = e.target.files[0];
-
-    if (!file.type.match("image.*")) {
-      setError("กรุณาเลือกไฟล์รูปภาพเท่านั้น (PNG, JPG, GIF)");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError("ขนาดไฟล์ไม่ควรเกิน 5MB");
-      return;
-    }
-
-    setSelectedFile(file);
-  };
-
+  // ฟังก์ชันอัปโหลดไฟล์ไป ImgBB
   const uploadImageToImgBB = async () => {
     if (!selectedFile) return null;
 
@@ -95,17 +75,9 @@ const ProfileEditTab = ({ user }) => {
         throw new Error(response.data.error?.message || "อัปโหลดรูปภาพไม่สำเร็จ");
       }
 
-      const imageUrl = response.data.data.image?.url || response.data.data.url;
-      console.log("อัปโหลดสำเร็จ URL:", imageUrl);
-
-      return imageUrl;
+      return response.data.data.image.url;
     } catch (error) {
-      console.error("ข้อผิดพลาดในการอัปโหลด:", error);
-      setError(
-        error.response?.data?.error?.message ||
-          error.message ||
-          "อัปโหลดรูปภาพไม่สำเร็จ"
-      );
+      setError(error.response?.data?.error?.message || error.message || "อัปโหลดรูปภาพไม่สำเร็จ");
       return null;
     } finally {
       setIsUploading(false);
@@ -118,13 +90,16 @@ const ProfileEditTab = ({ user }) => {
     try {
       let newAvatar = avatar;
 
+      // ถ้ามีไฟล์ใหม่ อัปโหลดก่อน
       if (selectedFile) {
         const uploadedUrl = await uploadImageToImgBB();
         if (uploadedUrl) {
           newAvatar = uploadedUrl;
           setAvatar(uploadedUrl);
+          setSelectedFile(null);
+          setPreview(null);
         } else {
-          return;
+          return; // อัปโหลดไม่สำเร็จ หยุดเลย
         }
       }
 
@@ -140,21 +115,14 @@ const ProfileEditTab = ({ user }) => {
         config
       );
 
-      if (!data.success) {
-        throw new Error(data.message || "อัปเดตโปรไฟล์ไม่สำเร็จ");
-      }
+      setIsUpdated(data.success);
 
-      setIsUpdated(true);
       await refreshSession();
+
       setConfirmPassword("");
-      setSelectedFile(null);
     } catch (error) {
-      console.error("ข้อผิดพลาดในการอัปเดต:", error);
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์"
-      );
+      setError(error.response?.data?.message || error.message || "เกิดข้อผิดพลาด");
+      console.error(error.message);
     }
   };
 
@@ -187,51 +155,46 @@ const ProfileEditTab = ({ user }) => {
         />
       </div>
 
-      <div className="col-span-2">
-        <label className="block text-sm font-medium tracking-wide">รูปภาพโปรไฟล์</label>
+      <div className="col-span-2 md:col-span-1">
+        <label className="block text-sm font-medium tracking-wide">รูปภาพ (URL หรือ เลือกไฟล์)</label>
 
-        <div className="mt-2 flex items-center gap-4">
-          <div className="flex-shrink-0 rounded-full overflow-hidden border border-gray-200 w-16 h-16 relative">
-            {(preview || avatar) ? (
-              <Image
-                src={preview || avatar}
-                alt="Preview"
-                layout="fill"
-                objectFit="cover"
-                unoptimized
-              />
-            ) : (
-              <Image
-                src="/default-avatar.png"
-                alt="Default Avatar"
-                layout="fill"
-                objectFit="cover"
-                unoptimized
-              />
-            )}
-          </div>
+        <input
+          type="text"
+          value={avatar}
+          onChange={(e) => setAvatar(e.target.value)}
+          disabled={isUploading}
+          className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base mb-2"
+          placeholder="วาง URL รูปภาพ หรือเลือกไฟล์ด้านล่าง"
+        />
 
-          <div className="flex-1">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-              disabled={isUploading}
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              PNG, JPG, GIF ขนาดไม่เกิน 5MB
-            </p>
-            {isUploading && (
-              <p className="mt-1 text-xs text-blue-600">กำลังอัปโหลดรูปภาพ...</p>
-            )}
-          </div>
-        </div>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              setSelectedFile(e.target.files[0]);
+            }
+          }}
+          disabled={isUploading}
+          className="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-blue-50 file:text-blue-700
+            hover:file:bg-blue-100"
+        />
+
+        {preview && (
+          <img
+            src={preview}
+            alt="Preview"
+            className="mt-2 rounded-md max-w-[200px] max-h-[200px] object-cover border border-gray-300"
+          />
+        )}
+
+        {isUploading && (
+          <p className="mt-1 text-xs text-blue-600">กำลังอัปโหลดรูปภาพ...</p>
+        )}
       </div>
 
       <div className="col-span-2 md:col-span-1">
@@ -241,7 +204,6 @@ const ProfileEditTab = ({ user }) => {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base"
-          placeholder="จำเป็นสำหรับการเปลี่ยนแปลงข้อมูล"
         />
       </div>
 
@@ -252,54 +214,24 @@ const ProfileEditTab = ({ user }) => {
           type="button"
           onClick={handleSubmit}
           disabled={isUploading}
-          className={`inline-flex items-center bg-blue-600 rounded-md transition-all overflow-hidden ${
-            isUploading ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"
-          }`}
+          className="inline-flex items-center bg-primary rounded-md transition-all overflow-hidden"
         >
-          <div className="w-full h-full inline-flex items-center justify-center font-medium text-white py-2 px-4">
-            {isUploading ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                <span className="block">กำลังบันทึก...</span>
-              </>
-            ) : (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                  className="w-5 h-5 mr-2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span className="block">บันทึก</span>
-              </>
-            )}
+          <div className="w-full h-full inline-flex items-center justify-center font-medium text-white hover:backdrop-brightness-95 py-2 px-4">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2.5}
+              stroke="currentColor"
+              className="w-5 h-5 mr-2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span className="block">{isUploading ? "กำลังบันทึก..." : "บันทึก"}</span>
           </div>
         </button>
       </div>
