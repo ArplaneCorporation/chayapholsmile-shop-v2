@@ -43,17 +43,21 @@ const CategoryIDPASS = (props) => {
 
     useEffect(() => {
         const getAllProducts = async () => {
-            const { data } = await axios.get(`/api/products?cid=${cid}`);
-            setProducts(data.products);
-            setLoading(false);
+            try {
+                const { data } = await axios.get(`/api/products?cid=${cid}`);
+                setProducts(data.products);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
         };
 
-        getAllProducts().catch(() => {
-            console.error;
-            setLoading(false);
-        });
+        if (cid) {
+            getAllProducts();
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [success]);
+    }, [cid, success]);
 
     useEffect(() => {
         if (error) {
@@ -148,18 +152,21 @@ const CategoryIDPASS = (props) => {
                 )}
             </AnimatePresence>
             <main className="max-w-[1150px] px-4 sm:px-[25px] pb-4 sm:pb-[25px] pt-24 md:pt-28 mx-auto items-center">
-                <section
-                    id="banner"
-                    className="flex justify-center items-center aspect-[16/3.5] relative overflow-hidden md:rounded-lg md:mx-2 mb-4 md:mb-6 lg:mb-8"
-                >
-                    <Image
-                        alt="homepage_banner"
-                        src={"https://dummyimage.com/1100x240"}
-                        draggable="false"
-                        fill
-                        className="select-none object-cover"
-                    />
-                </section>
+                {props.configs?.website_banner && (
+                    <section
+                        id="banner"
+                        className="flex justify-center items-center aspect-[16/3.5] relative overflow-hidden md:rounded-lg md:mx-2 mb-4 md:mb-6 lg:mb-8"
+                    >
+                        <Image
+                            alt="homepage_banner"
+                            src={props.configs.website_banner}
+                            draggable="false"
+                            fill
+                            className="select-none object-cover"
+                            priority
+                        />
+                    </section>
+                )}
                 {loading ? (
                     <LoadingSpiner />
                 ) : (
@@ -173,9 +180,7 @@ const CategoryIDPASS = (props) => {
                                             placeholder="uid"
                                             id="uid"
                                             value={uid}
-                                            onChange={(e) =>
-                                                setUid(e.target.value)
-                                            }
+                                            onChange={(e) => setUid(e.target.value)}
                                             autoComplete="off"
                                             className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base"
                                         />
@@ -256,8 +261,6 @@ const CategoryIDPASS = (props) => {
 
 export default CategoryIDPASS;
 
-// export { getServerSideProps } from "../../../utils/get-init-data";
-
 export const getServerSideProps = withInitProps(async (ctx) => {
     try {
         const cid = ctx.params.category;
@@ -268,18 +271,25 @@ export const getServerSideProps = withInitProps(async (ctx) => {
                     (s) => String(s) === "Symbol(NextRequestMeta)"
                 )
             ];
-        const protocal = nextRequestMeta._protocol;
+        const protocol = nextRequestMeta._protocol;
+        const host = ctx.req.headers.host;
 
-        const { data } = await axios.get(
-            `${protocal}://${ctx.req.headers.host}/api/categories/${cid}`
+        const { data: categoryData } = await axios.get(
+            `${protocol}://${host}/api/categories/${cid}`
+        );
+
+        const { data: configsData } = await axios.get(
+            `${protocol}://${host}/api/configs`
         );
 
         return {
             props: {
-                category: data.category,
+                category: categoryData.category,
+                configs: configsData,
             },
         };
     } catch (error) {
+        console.log(error);
         return {
             notFound: true,
         };
