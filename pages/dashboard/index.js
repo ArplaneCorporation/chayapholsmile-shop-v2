@@ -223,7 +223,7 @@ const Dashboard = () => {
                     />
                 </section>
 
-       <section
+   /*    <section
                     id="stats-group-third"
                     className="grid grid-cols-2 gap-4 mb-4"
                 >
@@ -253,7 +253,7 @@ const Dashboard = () => {
             </main>
         </Layout>
     );
-};
+};  */
 
 export default Dashboard;
 
