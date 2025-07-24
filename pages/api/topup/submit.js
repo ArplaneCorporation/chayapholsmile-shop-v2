@@ -25,8 +25,15 @@ function normalize(str) {
 
 export default async function handler(req, res) {
   await dbConnect();
+
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, message: "Method not allowed" });
+  }
+
+  // ดึง userId จาก session (แก้ตามระบบ session ของคุณ)
+  const userId = req.session?.userId;
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 
   const form = new IncomingForm({ multiples: false });
@@ -34,11 +41,10 @@ export default async function handler(req, res) {
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ success: false, message: "Parse error" });
 
-    const { user } = fields;
     const file = files.file;
 
-    if (!user || !file) {
-      return res.status(400).json({ success: false, message: "Missing user or file" });
+    if (!file) {
+      return res.status(400).json({ success: false, message: "Missing file" });
     }
 
     try {
@@ -63,14 +69,15 @@ export default async function handler(req, res) {
       if (qr.expiresAt < new Date()) throw new Error("QR หมดอายุแล้ว");
       if (parseFloat(amount) !== qr.amount) throw new Error("ยอดเงินไม่ตรงกับ QR");
 
-      // สำเร็จ
+      // สำเร็จ - อัปเดต QR
       qr.used = true;
       await qr.save();
 
+      // บันทึกข้อมูลเติมเงิน
       await Topup.create({
-        user,
+        user: userId,             // ใช้ userId จาก session
         reference: ref,
-        type: "promptpay",
+        type: "promptpay",        // ตรวจสอบ enum ในโมเดลด้วยนะครับ
         method: "promptpay",
         amount: qr.amount,
         status: "success",
@@ -81,8 +88,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: "เติมเงินสำเร็จ" });
 
     } catch (e) {
+      // บันทึกเติมเงินล้มเหลว
       await Topup.create({
-        user,
+        user: userId,
         reference: "unknown",
         type: "promptpay",
         method: "promptpay",
