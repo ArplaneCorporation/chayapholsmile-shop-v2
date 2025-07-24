@@ -16,51 +16,21 @@ const NewCategoryModal = ({ setIsOpen }) => {
     const [type, setType] = useState({});
     const [isUid, setIsUid] = useState(false);
     const [image, setImage] = useState("");
-    const [uploading, setUploading] = useState(false);
 
-    const handleImageChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setUploading(true);
-
-        try {
-            const formData = new FormData();
-            formData.append("image", file);
-
-            // แทนที่ da7790754b7c91f3f7ffe7b5ee7c5146 ด้วย API key ของคุณเองถ้าจำเป็น
-            const response = await fetch(
-                "https://api.imgbb.com/1/upload?key=da7790754b7c91f3f7ffe7b5ee7c5146",
-                {
-                    method: "POST",
-                    body: formData,
-                }
-            );
-
-            const result = await response.json();
-
-            if (result.success) {
-                setImage(result.data.url);
-            } else {
-                alert("อัปโหลดรูปไม่สำเร็จ");
-            }
-        } catch (error) {
-            alert("เกิดข้อผิดพลาดในการอัปโหลดรูป");
-            console.error(error);
-        } finally {
-            setUploading(false);
-        }
-    };
+    const defaultImageUrl =
+      "https://raw.githubusercontent.com/ArplaneCorporation/chayapholsmile-shop-v2/3d59b1175ddb9566e282e2f6514116e770161e66/pictures/categorynopic.png";
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        const finalImage = image.trim() === "" ? defaultImageUrl : image.trim();
 
         createCategory({
             name: name,
             description: description,
             type: type.value,
             form_uid: isUid,
-            image: image,
+            image: finalImage,
         });
         setIsOpen(false);
     };
@@ -140,29 +110,24 @@ const NewCategoryModal = ({ setIsOpen }) => {
                         name="image"
                         id="image"
                         value={image}
-                        readOnly
-                        className="mt-1 p-2 block w-full rounded-md border bg-gray-50 cursor-not-allowed"
+                        onChange={(e) => setImage(e.target.value)}
+                        className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base"
                     />
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="mt-2"
-                        disabled={uploading}
-                    />
-                    {uploading && <p>กำลังอัปโหลด...</p>}
                 </div>
                 {type.value === "ID_PASS" && (
                     <div className="col-span-6 md:col-span-3 flex items-center">
-                        <label className="inline-flex relative items-center cursor-pointer">
+                        <label className="inline-flex relative items-center">
                             <input
                                 type="checkbox"
                                 className="sr-only peer"
                                 checked={isUid}
-                                onChange={() => setIsUid(!isUid)}
+                                readOnly
                             />
                             <div
-                                className="w-11 h-6 bg-gray-300 rounded-full peer-focus:ring-green-300 peer-checked:bg-green-600 relative after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"
+                                onClick={() => {
+                                    setIsUid(!isUid);
+                                }}
+                                className="w-11 h-6 cursor-pointer bg-gray-300 rounded-full peer peer-focus:ring-green-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"
                             ></div>
                             <span className="ml-4 text-base font-medium text-gray-900">
                                 ฟอร์มประเภท UID
