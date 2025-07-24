@@ -9,78 +9,82 @@ const NewCategoryModal = ({ setIsOpen }) => {
     { label: "ID-PASS", value: "ID_PASS" },
   ];
 
-  const [name, setName] = useState("");
-  const [type, setType] = useState(typeOptions[0].value);
-  const [imageFile, setImageFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-
   const { createCategory } = useContext(CategoryContext);
 
-  const handleCreate = async () => {
-    setLoading(true);
-    try {
-      let imageUrl =
-        "https://raw.githubusercontent.com/ArplaneCorporation/chayapholsmile-shop-v2/3d59b1175ddb9566e282e2f6514116e770161e66/pictures/categorynopic.png";
+  const [name, setName] = useState("");
+  const [type, setType] = useState("STOCK");
+  const [image, setImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
 
-      if (imageFile) {
-        const formData = new FormData();
-        formData.append("image", imageFile);
-        const res = await fetch("https://api.imgbb.com/1/upload?key=da7790754b7c91f3f7ffe7b5ee7c5146", {
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleCreate = async () => {
+    let imageUrl =
+      "https://raw.githubusercontent.com/ArplaneCorporation/chayapholsmile-shop-v2/3d59b1175ddb9566e282e2f6514116e770161e66/pictures/categorynopic.png";
+
+    if (image) {
+      const formData = new FormData();
+      formData.append("image", image);
+
+      const res = await fetch(
+        `https://api.imgbb.com/1/upload?key=da7790754b7c91f3f7ffe7b5ee7c5146`,
+        {
           method: "POST",
           body: formData,
-        });
-        const data = await res.json();
-        if (data.success) {
-          imageUrl = data.data.url;
         }
-      }
+      );
 
-      await createCategory({ name, type, image: imageUrl });
-      setIsOpen(false);
-    } catch (err) {
-      console.error("Error creating category:", err);
-    } finally {
-      setLoading(false);
+      const data = await res.json();
+      if (data.success) {
+        imageUrl = data.data.url;
+      }
     }
+
+    await createCategory({ name, type, image: imageUrl });
+    setIsOpen(false);
   };
 
   return (
-    <ModalLayout title="เพิ่มหมวดหมู่ใหม่" setIsOpen={setIsOpen}>
-      <div className="space-y-4">
-        <div className="flex flex-col">
-          <label className="text-sm font-medium">ชื่อหมวดหมู่</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="border border-gray-300 p-2 rounded-md"
-            placeholder="เช่น บัตรเติมเกม"
-          />
+    <ModalLayout title="New Category" setIsOpen={setIsOpen}>
+      <div className="flex flex-col gap-4">
+        <input
+          type="text"
+          placeholder="ชื่อหมวดหมู่"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="border rounded px-3 py-2"
+        />
+
+        <Select
+          label="ประเภท"
+          options={typeOptions}
+          value={type}
+          onChange={(value) => setType(value)}
+        />
+
+        <div>
+          <label>อัปโหลดรูปภาพ</label>
+          <input type="file" accept="image/*" onChange={handleImageChange} />
         </div>
 
-        <div className="flex flex-col">
-          <label className="text-sm font-medium">ประเภท</label>
-          <Select
-            value={type}
-            onChange={(value) => setType(value)}
-            options={typeOptions}
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label className="text-sm font-medium">ภาพหมวดหมู่ (ถ้ามี)</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files[0])}
+        <div className="mt-2">
+          <label>ตัวอย่างภาพ:</label>
+          <img
+            src={previewUrl || "https://raw.githubusercontent.com/ArplaneCorporation/chayapholsmile-shop-v2/3d59b1175ddb9566e282e2f6514116e770161e66/pictures/categorynopic.png"}
+            alt="Preview"
+            className="w-32 h-32 object-cover mt-2 rounded border"
           />
         </div>
 
         <button
           onClick={handleCreate}
-          className="w-full bg-primary hover:bg-primary/80 text-white font-bold py-2 rounded-md"
-          disabled={loading}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
-          {loading ? "กำลังบันทึก..." : "บันทึก"}
+          สร้างหมวดหมู่
         </button>
       </div>
     </ModalLayout>
