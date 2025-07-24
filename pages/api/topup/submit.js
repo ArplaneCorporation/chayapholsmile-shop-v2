@@ -6,7 +6,7 @@ import Topup from "../../../models/topup";
 import Config from "../../../models/config";
 
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]"; // ปรับ path ตามจริง
+import { authOptions } from "/api/auth/[...nextauth]"; // ปรับ path ตามจริง
 
 export const config = { api: { bodyParser: false } };
 
