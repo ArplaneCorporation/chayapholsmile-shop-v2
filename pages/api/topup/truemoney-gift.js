@@ -5,66 +5,58 @@ import { customAlphabet } from "nanoid";
 import TrueWallet from "../../../lib/TrueWallet";
 import { isAuthenticatedUser } from "../../../middlewares/auth";
 
-async function handler(req, res) {
-  await dbConnect();
-
+export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ success: false, message: "Method not allowed." });
+    return res.status(405).json({ success: false, message: "Method Not Allowed" });
   }
 
   try {
-    const { phone, gift_url } = req.body;
-    if (!phone || !gift_url) {
-      return res.status(400).json({ success: false, message: "กรุณาส่ง phone และ gift_url ให้ครบถ้วน" });
+    await dbConnect();
+    await isAuthenticatedUser(req, res);
+
+    const { code } = req.body;
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({ success: false, message: "Invalid code" });
     }
 
-    const urlObj = new URL(gift_url);
-    const token = urlObj.searchParams.get("v");
+    const wallet = new TrueWallet(req.user?.phoneNumber);
+    const redeemResult = await wallet.redeem(code);
 
-    if (!token) {
-      return res.status(400).json({ success: false, message: "ลิงก์ไม่ถูกต้อง ไม่มี token 'v'" });
+    if (!redeemResult || !redeemResult.amount) {
+      return res.status(400).json({ success: false, message: "Failed to redeem code" });
     }
 
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ success: false, message: "ผู้ใช้ไม่ได้ล็อกอินหรือ token หมดอายุ" });
-    }
+    const nanoid = customAlphabet("1234567890abcdef", 10);
+    const ref = nanoid();
 
-    const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 10);
-    const wallet = new TrueWallet(phone);
-
-    console.log("Redeeming token:", token);
-    const redeemed = await wallet.redeem(token);
-    console.log("Redeemed result:", redeemed);
-
-    if (!redeemed) {
-      return res.status(406).json({ success: false, message: "ลิงก์นี้ถูกใช้งานไปแล้ว" });
-    }
-
+    // บันทึกลง Topup
     const topup = await Topup.create({
-      _id: nanoid(),
-      type: "TRUEMONEY_GIFT",
-      amount: redeemed.amount,
-      reference: gift_url,
-      user: req.user.id,
+      user: req.user._id,
+      type: "truemoney_gift",
+      ref,
+      amount: redeemResult.amount,
+      status: "success",
     });
 
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้" });
-    }
+    // เพิ่มยอดเงินให้ user
+    const user = await User.findById(req.user._id);
+    user.balance += redeemResult.amount;
+    await user.save();
 
-    user.point = (user.point || 0) + redeemed.amount;
-    await user.save({ validateBeforeSave: false });
-
-    return res.status(200).json({ success: true, topup });
+    return res.status(200).json({
+      success: true,
+      message: `เติมเงิน ${redeemResult.amount} บาท สำเร็จ`,
+      topupId: topup._id,
+      newBalance: user.balance,
+    });
   } catch (error) {
     console.error("Error in /api/topup/gift:", error);
-    return res.status(500).json({ success: false, message: "ไม่สามารถดำเนินการได้" });
+
+    let msg = "เกิดข้อผิดพลาดในการเติมเงิน";
+    if (error.message?.startsWith("Sorry we cannot")) {
+      msg = "โค้ดนี้ไม่สามารถใช้งานได้ หรือถูกใช้ไปแล้ว";
+    }
+
+    return res.status(500).json({ success: false, message: msg });
   }
 }
-
-// ถ้าใช้ middleware
-export default isAuthenticatedUser(handler);
-
-// ถ้าไม่ใช้ middleware ให้ใช้บรรทัดนี้แทน
-// export default handler;
