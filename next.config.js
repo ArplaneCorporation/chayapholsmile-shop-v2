@@ -5,6 +5,7 @@ const nextConfig = {
     domains: [
       "raw.githubusercontent.com",
       "i.ibb.co",
+      "dummyimage.com",
     ],
   },
 };
