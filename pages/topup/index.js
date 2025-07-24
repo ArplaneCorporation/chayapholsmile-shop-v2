@@ -95,7 +95,7 @@ const Topup = ({ configs }) => {
     const formData = new FormData();
 
     // ส่ง user จาก configs (แก้ตามระบบ user จริงที่คุณใช้)
-    formData.append("user", configs.user || "guest");
+
     formData.append("file", slipImage); // key ต้องเป็น 'file' ตาม API
     formData.append("amount", amount);
     formData.append("ref", qrRef);
