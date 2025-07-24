@@ -1,8 +1,16 @@
 const BestSelling = ({ products }) => {
+    // ถ้าไม่ใช่ array ให้ return แสดงข้อความแทน
+    if (!Array.isArray(products)) {
+        return <p className="text-red-500 px-4">ไม่มีข้อมูลสินค้าขายดี</p>;
+    }
+
+    // เรียงสินค้าขายดีจากมากไปน้อย
+    const sortedProducts = [...products].sort((a, b) => (b.sold ?? 0) - (a.sold ?? 0));
+
     return (
         <div className="flex flex-col overflow-x-auto">
             <ul>
-                {products?.map((product, index) => (
+                {sortedProducts.map((product, index) => (
                     <li
                         key={index}
                         className={`flex flex-row items-center justify-between py-3 px-3 ${
@@ -15,7 +23,7 @@ const BestSelling = ({ products }) => {
                             </div>
                             <h1>{product.name}</h1>
                         </div>
-                        <p>{product.sold} ชิ้น</p>
+                        <p>{product.sold ?? 0} ชิ้น</p>
                     </li>
                 ))}
             </ul>
