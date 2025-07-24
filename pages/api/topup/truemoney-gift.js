@@ -1,3 +1,10 @@
+import dbConnect from "../../../lib/db-connect";
+import Topup from "../../../models/topup";
+import User from "../../../models/user";
+import { customAlphabet } from "nanoid";
+import TrueWallet from "../../../lib/TrueWallet";
+import { isAuthenticatedUser } from "../../../middlewares/auth";
+
 async function handler(req, res) {
   await dbConnect();
 
@@ -24,7 +31,7 @@ async function handler(req, res) {
 
     const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 10);
     const wallet = new TrueWallet(phone);
-    
+
     console.log("Redeeming token:", token);
     const redeemed = await wallet.redeem(token);
     console.log("Redeemed result:", redeemed);
@@ -55,3 +62,9 @@ async function handler(req, res) {
     return res.status(500).json({ success: false, message: "ไม่สามารถดำเนินการได้" });
   }
 }
+
+// ถ้าใช้ middleware
+export default isAuthenticatedUser(handler);
+
+// ถ้าไม่ใช้ middleware ให้ใช้บรรทัดนี้แทน
+// export default handler;
