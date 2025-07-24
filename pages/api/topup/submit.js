@@ -5,6 +5,9 @@ import PromptQR from "../../../models/promptqr";
 import Topup from "../../../models/topup";
 import Config from "../../../models/config";
 
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../../auth/[...nextauth]"; // ปรับ path ตามจริง
+
 export const config = { api: { bodyParser: false } };
 
 async function verifySlipFromImage(imgBase64) {
@@ -30,11 +33,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: "Method not allowed" });
   }
 
-  // ดึง userId จาก session (แก้ตามระบบ session ของคุณ)
-  const userId = req.session?.userId;
-  if (!userId) {
+  // ดึง session จาก next-auth
+  const session = await getServerSession(req, res, authOptions);
+  if (!session?.user?.id) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
+
+  const userId = session.user.id;
 
   const form = new IncomingForm({ multiples: false });
 
@@ -42,7 +47,6 @@ export default async function handler(req, res) {
     if (err) return res.status(400).json({ success: false, message: "Parse error" });
 
     const file = files.file;
-
     if (!file) {
       return res.status(400).json({ success: false, message: "Missing file" });
     }
@@ -69,15 +73,15 @@ export default async function handler(req, res) {
       if (qr.expiresAt < new Date()) throw new Error("QR หมดอายุแล้ว");
       if (parseFloat(amount) !== qr.amount) throw new Error("ยอดเงินไม่ตรงกับ QR");
 
-      // สำเร็จ - อัปเดต QR
+      // อัปเดต QR ว่าใช้แล้ว
       qr.used = true;
       await qr.save();
 
-      // บันทึกข้อมูลเติมเงิน
+      // สร้างบันทึก Topup โดยใช้ userId จาก session
       await Topup.create({
-        user: userId,             // ใช้ userId จาก session
+        user: userId,
         reference: ref,
-        type: "promptpay",        // ตรวจสอบ enum ในโมเดลด้วยนะครับ
+        type: "promptpay",  // ตรวจสอบ enum ในโมเดลด้วยครับ
         method: "promptpay",
         amount: qr.amount,
         status: "success",
@@ -86,9 +90,8 @@ export default async function handler(req, res) {
       });
 
       return res.status(200).json({ success: true, message: "เติมเงินสำเร็จ" });
-
     } catch (e) {
-      // บันทึกเติมเงินล้มเหลว
+      // บันทึกล้มเหลว
       await Topup.create({
         user: userId,
         reference: "unknown",
@@ -99,6 +102,7 @@ export default async function handler(req, res) {
         verifyNote: e.message,
         createdAt: new Date(),
       });
+
       return res.status(400).json({ success: false, message: e.message });
     }
   });
