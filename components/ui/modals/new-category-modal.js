@@ -1,94 +1,184 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import CategoryContext from "../../../contexts/category/category-context";
 import Select from "../select/select";
 import ModalLayout from "./modal-layout/modal-layout";
 
 const NewCategoryModal = ({ setIsOpen }) => {
-  const typeOptions = [
-    { label: "Stock", value: "STOCK" },
-    { label: "ID-PASS", value: "ID_PASS" },
-  ];
+    const typeOptions = [
+        { label: "Stock", value: "STOCK" },
+        { label: "ID-PASS", value: "ID_PASS" },
+    ];
 
-  const { createCategory } = useContext(CategoryContext);
+    const { createCategory } = useContext(CategoryContext);
 
-  const [name, setName] = useState("");
-  const [type, setType] = useState("STOCK");
-  const [image, setImage] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState("");
+    const [name, setName] = useState("");
+    const [description, setDescription] = useState("");
+    const [type, setType] = useState({});
+    const [isUid, setIsUid] = useState(false);
+    const [image, setImage] = useState("");
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setImage(file);
-    setPreviewUrl(URL.createObjectURL(file));
-  };
+    const handleSubmit = (e) => {
+        e.preventDefault();
 
-  const handleCreate = async () => {
-    let imageUrl =
-      "https://raw.githubusercontent.com/ArplaneCorporation/chayapholsmile-shop-v2/3d59b1175ddb9566e282e2f6514116e770161e66/pictures/categorynopic.png";
+        createCategory({
+            name: name,
+            description: description,
+            type: type.value,
+            form_uid: isUid,
+            image: image,
+        });
+        setIsOpen(false);
+    };
 
-    if (image) {
-      const formData = new FormData();
-      formData.append("image", image);
-
-      const res = await fetch(
-        `https://api.imgbb.com/1/upload?key=da7790754b7c91f3f7ffe7b5ee7c5146`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      const data = await res.json();
-      if (data.success) {
-        imageUrl = data.data.url;
-      }
-    }
-
-    await createCategory({ name, type, image: imageUrl });
-    setIsOpen(false);
-  };
-
-  return (
-    <ModalLayout title="New Category" setIsOpen={setIsOpen}>
-      <div className="flex flex-col gap-4">
-        <input
-          type="text"
-          placeholder="ชื่อหมวดหมู่"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-
-        <Select
-          label="ประเภท"
-          options={typeOptions}
-          value={type}
-          onChange={(value) => setType(value)}
-        />
-
-        <div>
-          <label>อัปโหลดรูปภาพ</label>
-          <input type="file" accept="image/*" onChange={handleImageChange} />
-        </div>
-
-        <div className="mt-2">
-          <label>ตัวอย่างภาพ:</label>
-          <img
-            src={previewUrl || "https://raw.githubusercontent.com/ArplaneCorporation/chayapholsmile-shop-v2/3d59b1175ddb9566e282e2f6514116e770161e66/pictures/categorynopic.png"}
-            alt="Preview"
-            className="w-32 h-32 object-cover mt-2 rounded border"
-          />
-        </div>
-
-        <button
-          onClick={handleCreate}
-          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          สร้างหมวดหมู่
-        </button>
-      </div>
-    </ModalLayout>
-  );
+    return (
+        <ModalLayout>
+            <div className="w-full px-6 py-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold">สร้างหมวดหมู่ใหม่</h2>
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="inline-flex items-center font-medium text-black py-2 rounded-md transition-all hover:scale-125"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="2.5"
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </button>
+            </div>
+            <form
+                autoComplete="off"
+                className="px-6 py-4 w-[95vw] md:w-[25rem] grid grid-cols-3 gap-6"
+            >
+                <div className="col-span-6 md:col-span-3">
+                    <label className="block text-sm font-medium tracking-wide">
+                        ชื่อหมวดหมู่
+                    </label>
+                    <input
+                        type="text"
+                        name="name"
+                        id="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base"
+                    />
+                </div>
+                <div className="col-span-6 md:col-span-3">
+                    <label className="block text-sm font-medium tracking-wide">
+                        รายละเอียด
+                    </label>
+                    <input
+                        type="text"
+                        name="description"
+                        id="description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base"
+                    />
+                </div>
+                <div className="col-span-6 md:col-span-3">
+                    <label className="block text-sm mb-1 font-medium tracking-wide">
+                        ประเภท
+                    </label>
+                    <Select
+                        placeholder="เลือกหมวดหมู่"
+                        options={typeOptions}
+                        selected={type}
+                        setSelected={setType}
+                    />
+                </div>
+                <div className="col-span-6 md:col-span-3">
+                    <label className="block text-sm font-medium tracking-wide">
+                        รูปภาพ (348x200)
+                    </label>
+                    <input
+                        type="text"
+                        name="image"
+                        id="image"
+                        value={image}
+                        onChange={(e) => setImage(e.target.value)}
+                        className="mt-1 p-2 block w-full rounded-md border focus:outline-none border-gray-300 focus:border-blue-600 shadow-sm md:text-base"
+                    />
+                </div>
+                {type.value === "ID_PASS" && (
+                    <div className="col-span-6 md:col-span-3 flex items-center">
+                        <label className="inline-flex relative items-center">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={isUid}
+                                readOnly
+                            />
+                            <div
+                                onClick={() => {
+                                    setIsUid(!isUid);
+                                }}
+                                className="w-11 h-6 cursor-pointer bg-gray-300 rounded-full peer peer-focus:ring-green-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"
+                            ></div>
+                            <span className="ml-4 text-base font-medium text-gray-900">
+                                ฟอร์มประเภท UID
+                            </span>
+                        </label>
+                    </div>
+                )}
+            </form>
+            <div className="w-full px-6 py-4 flex items-center justify-end gap-x-4">
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="inline-flex items-center font-medium border hover:bg-gray-100/80 py-2 px-2 md:px-4 rounded-md transition-all"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="w-5 h-5 mr-2"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                    </svg>
+                    <span className="block">ยกเลิก</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="inline-flex items-center bg-primary rounded-md transition-all overflow-hidden"
+                >
+                    <div className="w-full h-full inline-flex items-center justify-center font-medium text-white hover:backdrop-brightness-95 py-2 px-4">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2.5}
+                            stroke="currentColor"
+                            className="w-5 h-5 mr-2"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                        <span className="block">สร้าง</span>
+                    </div>
+                </button>
+            </div>
+        </ModalLayout>
+    );
 };
 
 export default NewCategoryModal;
