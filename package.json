@@ -45,7 +45,8 @@
     "uuid": "^9.0.1",
 "promptpay-qr": "git+https://github.com/dtinth/promptpay-qr.git",
 "formidable": "^3.5.4",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "next-connect": "^1.0.0"
 
   },
   "devDependencies": {
