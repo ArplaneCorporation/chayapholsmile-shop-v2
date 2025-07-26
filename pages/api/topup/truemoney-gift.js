@@ -3,9 +3,9 @@ import Topup from "../../../models/topup";
 import User from "../../../models/user";
 import { isAuthenticatedUser } from "../../../middlewares/auth";
 
-// ฟังก์ชันสำหรับแลกโค้ด TrueMoney Gift
+// ฟังก์ชันสำหรับแลกรับ TrueMoney Gift
 async function redeemvouchers(phone, input) {
-  let code = input.includes("v=") ? input.split("v=")[1].trim() : input.trim();
+  const code = input.includes("v=") ? input.split("v=")[1].split("&")[0].trim() : input.trim();
 
   const headers = {
     "content-type": "application/json",
@@ -53,10 +53,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: "กรุณาส่ง gift_url ให้ถูกต้อง" });
     }
 
-    // ดึงโค้ดจาก gift_url
-    const code = gift_url.includes("v=") ? gift_url.split("v=")[1].trim() : gift_url.trim();
+    const code = gift_url.includes("v=")
+      ? gift_url.split("v=")[1].split("&")[0].trim()
+      : gift_url.trim();
 
-    if (!/^[a-zA-Z0-9]{14}$/.test(code)) {
+    if (!code) {
       return res.status(400).json({ success: false, message: "โค้ดไม่ถูกต้อง" });
     }
 
@@ -65,7 +66,6 @@ export default async function handler(req, res) {
       return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้" });
     }
 
-    // ใช้เบอร์จาก payload ถ้ามี, ไม่งั้นใช้จากผู้ใช้, ถ้าไม่มีเลยใช้ค่า default
     const targetPhone = phone || user.phone || "0901234567";
 
     const result = await redeemvouchers(targetPhone, code);
