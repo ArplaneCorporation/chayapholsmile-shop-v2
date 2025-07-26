@@ -24,14 +24,14 @@ async function redeemvouchers(phone, input) {
     if (data.status.code === "SUCCESS") {
       return { status: "SUCCESS", amount: Number(data.data.voucher.amount_baht) };
     } else if (data.status.code === "VOUCHER_OUT_OF_STOCK") {
-      return { status: "FAIL", reason: "Voucher out of stock" };
+      return { status: "FAIL", reason: "ซองหมดแล้ว" };
     } else if (data.status.code === "INVALID_VOUCHER") {
-      return { status: "FAIL", reason: "Invalid Code" };
+      return { status: "FAIL", reason: "รหัสผิด" };
     } else if (data.status.code === "VOUCHER_ALREADY_REDEEMED") {
-      return { status: "FAIL", reason: "Code already used" };
+      return { status: "FAIL", reason: "ซองนี้ได้ใช้งานไปแล้ว" };
     }
 
-    return { status: "FAIL", reason: data.status.message || "Unknown error" };
+    return { status: "FAIL", reason: data.status.message || "เกิดปัญหาที่ไม่ทราบสาเหตุ" };
   } catch (err) {
     return { status: "ERROR", reason: err.message };
   }
