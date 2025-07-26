@@ -75,9 +75,9 @@ async function handler(req, res) {
 
     const topup = await Topup.create({
       user: user._id,
-      type: "truemoney_gift",
+      type: "TRUEMONEY_GIFT",
       amount: result.amount,
-      code,
+      reference: code,
     });
 
     user.balance = (user.balance || 0) + result.amount;
