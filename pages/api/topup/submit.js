@@ -1,5 +1,6 @@
 import { IncomingForm } from "formidable";
 import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
 import dbConnect from "../../../lib/db-connect";
 import PromptQR from "../../../models/promptqr";
 import Topup from "../../../models/topup";
@@ -33,7 +34,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: "Method not allowed" });
   }
 
-  // เรียกใช้ getServerSession แบบถูกต้องโดยส่ง req เข้าไปใน authOptions
   const session = await getServerSession(req, res, authOptions(req));
   if (!session?.user?.id) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -73,15 +73,14 @@ export default async function handler(req, res) {
       if (qr.expiresAt < new Date()) throw new Error("QR หมดอายุแล้ว");
       if (parseFloat(amount) !== qr.amount) throw new Error("ยอดเงินไม่ตรงกับ QR");
 
-      // อัปเดต QR ว่าใช้แล้ว
       qr.used = true;
       await qr.save();
 
-      // สร้างบันทึก Topup โดยใช้ userId จาก session
       await Topup.create({
+        _id: uuidv4(),
         user: userId,
         reference: ref,
-        type: "PROMPTPAY",  // ต้องตรงกับ enum ใน Schema (ตัวพิมพ์ใหญ่)
+        type: "PROMPTPAY",
         amount: qr.amount,
         status: "success",
         verifyNote: "",
@@ -90,8 +89,8 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ success: true, message: "เติมเงินสำเร็จ" });
     } catch (e) {
-      // บันทึกล้มเหลว
       await Topup.create({
+        _id: uuidv4(),
         user: userId,
         reference: "unknown",
         type: "PROMPTPAY",
