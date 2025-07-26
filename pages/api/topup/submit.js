@@ -6,7 +6,7 @@ import Topup from "../../../models/topup";
 import Config from "../../../models/config";
 
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../auth/[...nextauth]"; // ปรับ path ตามจริง
+import { authOptions } from "../auth/[...nextauth]";
 
 export const config = { api: { bodyParser: false } };
 
@@ -33,8 +33,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: "Method not allowed" });
   }
 
-  // ดึง session จาก next-auth
-  const session = await getServerSession(req, res, authOptions);
+  // เรียกใช้ getServerSession แบบถูกต้องโดยส่ง req เข้าไปใน authOptions
+  const session = await getServerSession(req, res, authOptions(req));
   if (!session?.user?.id) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
@@ -81,8 +81,7 @@ export default async function handler(req, res) {
       await Topup.create({
         user: userId,
         reference: ref,
-        type: "promptpay",  // ตรวจสอบ enum ในโมเดลด้วยครับ
-        method: "promptpay",
+        type: "PROMPTPAY",  // ต้องตรงกับ enum ใน Schema (ตัวพิมพ์ใหญ่)
         amount: qr.amount,
         status: "success",
         verifyNote: "",
@@ -95,8 +94,7 @@ export default async function handler(req, res) {
       await Topup.create({
         user: userId,
         reference: "unknown",
-        type: "promptpay",
-        method: "promptpay",
+        type: "PROMPTPAY",
         amount: 0,
         status: "failed",
         verifyNote: e.message,
