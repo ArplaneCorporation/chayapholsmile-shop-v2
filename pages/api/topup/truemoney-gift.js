@@ -3,7 +3,7 @@ import Topup from "../../../models/topup";
 import User from "../../../models/user";
 import { isAuthenticatedUser } from "../../../middlewares/auth";
 
-// ฟังก์ชันสำหรับแลกรับ TrueMoney Gift
+// ฟังก์ชันแลกรับ TrueMoney Gift
 async function redeemvouchers(phone, input) {
   const code = input.includes("v=") ? input.split("v=")[1].split("&")[0].trim() : input.trim();
 
@@ -37,7 +37,7 @@ async function redeemvouchers(phone, input) {
   }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   await dbConnect();
 
   if (req.method !== "POST") {
@@ -45,8 +45,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    await isAuthenticatedUser(req, res);
-
     const { gift_url, phone } = req.body;
 
     if (!gift_url || typeof gift_url !== "string") {
@@ -61,7 +59,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: "โค้ดไม่ถูกต้อง" });
     }
 
-    const user = await User.findById(req.user._id);
+    // หาผู้ใช้จาก email ใน session.user
+    const user = await User.findOne({ email: req.user.email });
     if (!user) {
       return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้" });
     }
@@ -90,3 +89,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์" });
   }
 }
+
+// ห่อ handler ด้วย middleware
+export default isAuthenticatedUser(handler);
