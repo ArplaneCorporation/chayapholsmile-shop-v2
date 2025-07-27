@@ -64,7 +64,6 @@ async function handler(req, res) {
       return res.status(400).json({ success: false, message: "โค้ดไม่ถูกต้อง" });
     }
 
-    // หาผู้ใช้จาก email ใน session.user
     const user = await User.findOne({ email: req.user.email });
     if (!user) {
       return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้" });
@@ -93,12 +92,16 @@ async function handler(req, res) {
     user.balance = (user.balance || 0) + result.amount;
     await user.save();
 
-    return res.status(200).json({ success: true, message: "เติมเงินสำเร็จ", topup });
+    return res.status(200).json({
+      success: true,
+      message: `เติมเงินสำเร็จ จำนวน ${result.amount} บาท`,
+      topup,
+      balance: user.balance,
+    });
   } catch (error) {
     console.error("[truemoney-gift]", error);
     return res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์" });
   }
 }
 
-// ใช้ middleware ตรวจสอบผู้ใช้ก่อนทุกครั้ง
 export default isAuthenticatedUser(handler);
