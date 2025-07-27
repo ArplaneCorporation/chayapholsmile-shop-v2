@@ -1,14 +1,12 @@
 import dbConnect from "../../../lib/db-connect";
 import Topup from "../../../models/topup";
 import User from "../../../models/user";
+import { customAlphabet } from "nanoid";
 import { isAuthenticatedUser } from "../../../middlewares/auth";
-import { nanoid } from "nanoid";
 
 // ฟังก์ชันแลกรับ TrueMoney Gift
 async function redeemvouchers(phone, input) {
-  const code = input.includes("v=")
-    ? input.split("v=")[1].split("&")[0].trim()
-    : input.trim();
+  const code = input.includes("v=") ? input.split("v=")[1].split("&")[0].trim() : input.trim();
 
   const headers = {
     "content-type": "application/json",
@@ -25,10 +23,7 @@ async function redeemvouchers(phone, input) {
     const data = await res.json();
 
     if (data.status.code === "SUCCESS") {
-      return {
-        status: "SUCCESS",
-        amount: Number(data.data.voucher.amount_baht),
-      };
+      return { status: "SUCCESS", amount: Number(data.data.voucher.amount_baht) };
     } else if (data.status.code === "VOUCHER_OUT_OF_STOCK") {
       return { status: "FAIL", reason: "ซองหมดแล้ว" };
     } else if (data.status.code === "INVALID_VOUCHER") {
@@ -37,10 +32,7 @@ async function redeemvouchers(phone, input) {
       return { status: "FAIL", reason: "ซองนี้ได้ใช้งานไปแล้ว" };
     }
 
-    return {
-      status: "FAIL",
-      reason: data.status.message || "เกิดปัญหาที่ไม่ทราบสาเหตุ",
-    };
+    return { status: "FAIL", reason: data.status.message || "เกิดปัญหาที่ไม่ทราบสาเหตุ" };
   } catch (err) {
     return { status: "ERROR", reason: err.message };
   }
@@ -53,14 +45,15 @@ async function handler(req, res) {
     return res.status(405).json({ success: false, message: "Method Not Allowed" });
   }
 
+  if (!req.user || !req.user.email || !req.user.id) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
   try {
     const { gift_url, phone } = req.body;
 
     if (!gift_url || typeof gift_url !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "กรุณาส่ง gift_url ให้ถูกต้อง",
-      });
+      return res.status(400).json({ success: false, message: "กรุณาส่ง gift_url ให้ถูกต้อง" });
     }
 
     const code = gift_url.includes("v=")
@@ -71,6 +64,7 @@ async function handler(req, res) {
       return res.status(400).json({ success: false, message: "โค้ดไม่ถูกต้อง" });
     }
 
+    // หาผู้ใช้จาก email ใน session.user
     const user = await User.findOne({ email: req.user.email });
     if (!user) {
       return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้" });
@@ -81,36 +75,30 @@ async function handler(req, res) {
     const result = await redeemvouchers(targetPhone, code);
 
     if (result.status !== "SUCCESS") {
-      return res.status(400).json({
-        success: false,
-        message: result.reason || "ไม่สามารถเติมเงินได้",
-      });
+      return res.status(400).json({ success: false, message: result.reason || "ไม่สามารถเติมเงินได้" });
     }
 
+    const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 10);
+
     const topup = await Topup.create({
-      _id: nanoid(), // เพิ่ม ID เอง
+      _id: nanoid(),
       user: user._id,
       type: "TRUEMONEY_GIFT",
       amount: result.amount,
       reference: code,
+      status: "success",
+      createdAt: new Date(),
     });
 
     user.balance = (user.balance || 0) + result.amount;
     await user.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "เติมเงินสำเร็จ",
-      topup,
-    });
+    return res.status(200).json({ success: true, message: "เติมเงินสำเร็จ", topup });
   } catch (error) {
     console.error("[truemoney-gift]", error);
-    return res.status(500).json({
-      success: false,
-      message: "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์",
-    });
+    return res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์" });
   }
 }
 
-// Export พร้อม middleware
+// ใช้ middleware ตรวจสอบผู้ใช้ก่อนทุกครั้ง
 export default isAuthenticatedUser(handler);
