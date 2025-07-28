@@ -89,14 +89,12 @@ async function handler(req, res) {
       createdAt: new Date(),
     });
 
-    user.balance = (user.balance || 0) + result.amount;
+    user.point = (user.point || 0) + result.amount;
     await user.save();
 
     return res.status(200).json({
       success: true,
-      message: `เติมเงินสำเร็จ จำนวน ${result.amount} บาท`,
-      topup,
-      balance: user.balance,
+      message: `เติมเงินสำเร็จ จำนวน ${result.amount} บาท`
     });
   } catch (error) {
     console.error("[truemoney-gift]", error);
