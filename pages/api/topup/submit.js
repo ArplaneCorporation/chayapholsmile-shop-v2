@@ -1,6 +1,6 @@
 import nextConnect from "next-connect";
 import multer from "multer";
-import { v4 as uuidv4 } from "uuid";
+import { nanoid } from "nanoid"; // เปลี่ยนจาก uuidv4 เป็น nanoid
 import dbConnect from "../../../lib/db-connect";
 import PromptQR from "../../../models/promptqr";
 import Topup from "../../../models/topup";
@@ -91,9 +91,9 @@ apiRoute.post(async (req, res) => {
     qr.used = true;
     await qr.save();
 
-    // บันทึกข้อมูลเติมเงินในฐานข้อมูล
+    // บันทึกข้อมูลเติมเงินในฐานข้อมูล (ใช้ nanoid() แทน uuidv4())
     await Topup.create({
-      _id: uuidv4(),
+      _id: nanoid(10), // สร้าง ID ยาว 10 ตัวอักษร
       user: userId,
       reference: ref,
       type: "PROMPTPAY",
@@ -107,7 +107,7 @@ apiRoute.post(async (req, res) => {
   } catch (e) {
     // กรณีล้มเหลวบันทึกสถานะล้มเหลวด้วยสาเหตุ
     await Topup.create({
-      _id: uuidv4(),
+      _id: nanoid(10), // สร้าง ID ยาว 10 ตัวอักษร
       user: userId,
       reference: "unknown",
       type: "PROMPTPAY",
